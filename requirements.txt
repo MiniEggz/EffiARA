@@ -1,0 +1,9 @@
+sympy
+numpy
+pandas
+krippendorff
+matplotlib
+networkx
+datasets
+transformers
+statsmodels
