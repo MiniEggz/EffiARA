@@ -210,8 +210,8 @@ class SampleDistributor:
         # TODO: maybe add some handling of save path?
         for i in range(self.num_annotators):
             current_annotator = f"user_{i+1}"
-            link_1_annotator = f"user_{(i+1) % 6 + 1}"
-            link_2_annotator = f"user_{(i+2) % 6 + 1}"
+            link_1_annotator = f"user_{(i+1) % self.num_annotators + 1}"
+            link_2_annotator = f"user_{(i+2) % self.num_annotators + 1}"
             re_annotation_samples = None
 
             # single annotations
