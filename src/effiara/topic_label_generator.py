@@ -41,6 +41,11 @@ class TopicLabelGenerator(LabelGenerator):
                 row[f"{prefix}_bin_label"] = self.binarize(row[f"{prefix}_label"])
             else:
                 row[f"{prefix}_bin_label"] = np.nan
+
+        if "gold" in row:
+            row["gold"] = csv_to_array(row["gold"])
+            row["gold"] = self.binarize(row["gold"])
+
         return row
 
     def add_sample_prob_labels(
