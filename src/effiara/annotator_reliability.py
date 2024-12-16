@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 
 from effiara.agreement import pairwise_agreement
+from effiara.utils import retrieve_pair_annotations
 
 
 class Annotations:
@@ -129,40 +130,36 @@ class Annotations:
         for node in self.G.nodes():
             self.G.nodes[node][property] /= avg
 
-    def calculate_inter_annotator_agreement(self):
+    def calculate_inter_annotator_agreement(self, threshold=30):
         """Calculate the inter-annotator agreement between each
         pair of annotators. Each agreement value will be
         represented on the edges of the graph between nodes
         that are representative of each annotator.
+
+        Args:
+            threshold (int): threshold number of samples required
+                for a link to be made between two annotators.
         """
         inter_annotator_agreement_scores = {}
         for i in range(self.num_annotators):
-            # get the current annotators and 2 linked
+            # loop through all annotators and check if an overlap
             current_annotator = f"user_{i+1}"
-            link_1_annotator = f"user_{(i+1) % self.num_annotators + 1}"
-            link_2_annotator = f"user_{(i+2) % self.num_annotators + 1}"
 
-            # update inter annotator agreement scores
-            inter_annotator_agreement_scores[(current_annotator, link_1_annotator)] = (
-                pairwise_agreement(
-                    self.df,
-                    current_annotator,
-                    link_1_annotator,
-                    self.label_mapping,
-                    num_classes=self.num_classes,
-                    metric=self.agreement_metric,
-                )
-            )
-            inter_annotator_agreement_scores[(current_annotator, link_2_annotator)] = (
-                pairwise_agreement(
-                    self.df,
-                    current_annotator,
-                    link_2_annotator,
-                    self.label_mapping,
-                    num_classes=self.num_classes,
-                    metric=self.agreement_metric,
-                )
-            )
+            for j in range(i+1, self.num_annotators):
+                link_annotator = f"user_{j+1}"
+                # TODO: optimise use of pair df rather than generate twice
+                pair_df = retrieve_pair_annotations(self.df, current_annotator, link_annotator)
+                if len(pair_df) >= threshold:
+                    inter_annotator_agreement_scores[(current_annotator, link_annotator)] = (
+                        pairwise_agreement(
+                            self.df,
+                            current_annotator,
+                            link_annotator,
+                            self.label_mapping,
+                            num_classes=self.num_classes,
+                            metric=self.agreement_metric,
+                        )
+                    )
 
             # add all agreement scores to the graph
             for users, score in inter_annotator_agreement_scores.items():
@@ -214,6 +211,7 @@ class Annotations:
                 weighted_agreement_sum / weights_sum if weights_sum else 0
             )
 
+    # TODO: change so only has alpha
     def calculate_annotator_reliability(self, alpha=0.5, beta=0.5, epsilon=0.001):
         """Recursively calculate annotator reliability, using
            intra-annotator agreement, inter-annotator agreement,
