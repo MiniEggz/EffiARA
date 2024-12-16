@@ -14,12 +14,11 @@ class TopicLabelGenerator(LabelGenerator):
         self.mlb.fit([])  # predefined fit so call with empty list
 
     def binarize(self, label):
-        print(self.mlb.transform([label])[0])
+        # print(self.mlb.transform([label])[0])
         return self.mlb.transform([label])[0]
 
     def add_annotation_prob_labels(self, df: pd.DataFrame) -> pd.DataFrame:
         """Add binarised labels with a 1 representing a topic's presence."""
-        print("doing this")
         return pd.DataFrame(
             df.apply(
                 lambda row: self._add_row_annotation_bin_labels(
@@ -42,12 +41,59 @@ class TopicLabelGenerator(LabelGenerator):
                 row[f"{prefix}_bin_label"] = self.binarize(row[f"{prefix}_label"])
             else:
                 row[f"{prefix}_bin_label"] = np.nan
+
+        if "gold" in row:
+            row["gold"] = csv_to_array(row["gold"])
+            row["gold"] = self.binarize(row["gold"])
+
         return row
 
     def add_sample_prob_labels(
         self, df: pd.DataFrame, reliability_dict: dict
     ) -> pd.DataFrame:
-        return df
+        return pd.DataFrame(
+            df.apply(
+                lambda row: self._add_row_sample_prob_labels(
+                    row,
+                    reliability_dict,
+                ),
+                axis=1,
+            )
+        )
+    
+    def _add_row_sample_prob_labels(self, row: pd.Series, reliability_dict: dict):
+        # TODO: maybe add in something to account for reannotations
+        # only account for non-reannotations
+        prefixes = [f"user_{i}" for i in range(1, self.num_annotators+1)]
+        # set label
+        row["soft_label"] = np.zeros(len(self.label_mapping))
+        reliability_sum = 0
+        num_sample_annotators = 0
 
-    def add_sample_hard_labels(self, df) -> pd.DataFrame:
-        return df
+        # go through each annotator
+        for prefix in prefixes:
+            # check if this annotator annotate the sample
+            if isinstance(row[f"{prefix}_bin_label"], (list, np.ndarray)):
+                num_sample_annotators += 1
+                reliability_sum += reliability_dict[prefix]
+                row["soft_label"] += reliability_dict[prefix] * np.array(row[f"{prefix}_bin_label"]) 
+
+        # clip soft label (min=0, max=1)
+        row["soft_label"] = np.clip(row["soft_label"] / reliability_sum, 0, 1)
+        row["sample_weight"] = reliability_sum / num_sample_annotators
+
+        return row
+
+    def add_sample_hard_labels(self, df: pd.DataFrame) -> pd.DataFrame:
+        return pd.DataFrame(
+            df.apply(
+                lambda row: self._add_row_hard_label(
+                    row,
+                ),
+                axis=1,
+            )
+        )
+
+    def _add_row_hard_label(self, row: pd.Series) -> pd.Series:
+        row["hard_label"] = np.where(row["soft_label"] >= 0.5, 1, 0)
+        return row
