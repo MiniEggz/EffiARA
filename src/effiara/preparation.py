@@ -16,6 +16,7 @@ from sympy.core.symbol import Symbol
 def sample_without_replacement(
     df: pd.DataFrame, n: int
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    n = min([len(df), n])
     sampled_df = df.sample(n)
     return df.drop(sampled_df.index.to_list()), sampled_df
 
@@ -167,7 +168,7 @@ class SampleDistributor:
     def distribute_samples(
         self,
         df: pd.DataFrame,
-        save_path: str,
+        save_path: str = None,
         all_reannotation: bool = False,
     ):
         """Distribute samples based on sample distributor
@@ -249,6 +250,10 @@ class SampleDistributor:
 
                 annotations_dict[current_annotator].append(second_double_samples)
                 annotations_dict[link_2_annotator].append(second_double_samples)
+
+        if save_path is None:
+            annotations_dict["left_over"] = df
+            return annotations_dict
 
         for user, df_list in annotations_dict.items():
             # concat all user's dataframes
