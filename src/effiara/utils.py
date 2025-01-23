@@ -5,9 +5,13 @@ import numpy as np
 
 def check_user_format(user_x):
     """Check that user is in the correct format of
-    the string user_{some_number} or re_user_{some_number}.
+    the string user_{username} or re_user_{username}.
     """
-    return bool(re.match(r"(re_)?user_\d+", user_x))
+    matched = re.match(r"(re_)?user_\w+", user_x)
+    if matched is None:
+        raise ValueError(
+            "User parameters must be in the form user_x or re_user_x, where x is some string. Got '{user_x}'."
+        )
 
 
 def is_prob_label(x, num_classes):
@@ -53,15 +57,8 @@ def retrieve_pair_annotations(df, user_x, user_y):
         pd.DataFrame: copy of the reduced subset containing
                       only samples annotated by both users.
     """
-    if not check_user_format(user_x):
-        raise ValueError(
-            "User x parameters must be in the form user_x or re_user_x, where x is some number."
-        )
-    if not check_user_format(user_y):
-        raise ValueError(
-            "User y parameters must be in the form user_y or re_user_y, where y is some number."
-        )
-
+    check_user_format(user_x)
+    check_user_format(user_y)
     return df[df[f"{user_x}_label"].notna() & df[f"{user_y}_label"].notna()].copy()
 
 
