@@ -5,9 +5,8 @@ This includes:
     * calculating the distribution of samples
 """
 
-from typing import Optional
+from typing import Optional, List
 
-import numpy as np
 import pandas as pd
 from sympy import Eq, solve, symbols
 from sympy.core.symbol import Symbol
@@ -55,6 +54,7 @@ class SampleDistributor:
 
     def __init__(
         self,
+        annotators: Optional[List[str]] = None,
         num_annotators: Optional[int] = None,
         time_available: Optional[float] = None,
         annotation_rate: Optional[float] = None,
@@ -62,6 +62,9 @@ class SampleDistributor:
         double_proportion: Optional[float] = None,
         re_proportion: Optional[float] = None,
     ):
+        self.annotators = annotators
+        if self.annotators is not None:
+            num_annotators = len(annotators)
         self.get_variables(
             num_annotators,
             time_available,
@@ -70,6 +73,8 @@ class SampleDistributor:
             double_proportion,
             re_proportion,
         )
+        if self.annotators is None:
+            self.annotators = list(range(1, self.num_annotators + 1))
 
     def _assign_variables(self, variables: dict):
         """Assign class level variables from dict of symbolised
@@ -141,16 +146,16 @@ class SampleDistributor:
         """Set project distributions once all values have been
         defined.
         """
-        assert self.num_annotators is not None, "num_annotators must be set"
-        assert self.num_samples is not None, "num_samples must be set"
-        assert self.double_proportion is not None, "double_proportion must be set"
-        assert self.re_proportion is not None, "re_proportion must be set"
+        assert self.num_annotators is not None, "num_annotators must be set"  # noqa
+        assert self.num_samples is not None, "num_samples must be set"  # noqa
+        assert self.double_proportion is not None, "double_proportion must be set"  # noqa
+        assert self.re_proportion is not None, "re_proportion must be set"  # noqa
 
         self.double_annotation_project = round(
-            (self.double_proportion * self.num_samples) / (2 * self.num_annotators)
+            (self.double_proportion * self.num_samples) / (2 * self.num_annotators)  # noqa
         )
         self.single_annotation_project = round(
-            ((1 - self.double_proportion) * self.num_samples) / self.num_annotators
+            ((1 - self.double_proportion) * self.num_samples) / self.num_annotators  # noqa
         )
         self.re_annotation_project = round(
             self.re_proportion * self.single_annotation_project
@@ -189,7 +194,7 @@ class SampleDistributor:
         assert (
             self.double_annotation_project is not None
         ), "double_annotation_project must be set"
-        assert self.double_proportion is not None, "double_proportion must be set"
+        assert self.double_proportion is not None, "double_proportion must be set"  # noqa
         assert (
             self.single_annotation_project is not None
         ), "single_annotation_project must be set"
@@ -199,22 +204,24 @@ class SampleDistributor:
 
         if len(df) < self.num_samples:
             raise ValueError(
-                f"DataFrame does not contain enough samples. len(df) [{len(df)}] < num_samples [{self.num_samples}]."
+                f"DataFrame does not contain enough samples. len(df) [{len(df)}] < num_samples [{self.num_samples}]."  # noqa
             )
 
         # add sample_id to allow final dataset compilation
         df["sample_id"] = range(len(df))
 
         # create annotator dict
-        annotations_dict = {f"user_{i+1}": [] for i in range(self.num_annotators)}
+        annotations_dict = {f"user_{user}": [] for user in self.annotators}
 
         # TODO: maybe add some handling of save path?
-        for i in range(self.num_annotators):
-            current_annotator = f"user_{i+1}"
-            link_1_idx = (i+1) % self.num_annotators + 1
-            link_2_idx = (i+2) % self.num_annotators + 1
-            link_1_annotator = f"user_{link_1_idx}"
-            link_2_annotator = f"user_{link_2_idx}"
+        for (i, user) in enumerate(self.annotators):
+            current_annotator = f"user_{user}"
+            link_1_idx = (i+1) % self.num_annotators
+            link_2_idx = (i+2) % self.num_annotators
+            user_1 = self.annotators[link_1_idx]
+            user_2 = self.annotators[link_2_idx]
+            link_1_annotator = f"user_{user_1}"
+            link_2_annotator = f"user_{user_2}"
             re_annotation_samples = None
 
             # single annotations
@@ -231,7 +238,7 @@ class SampleDistributor:
                         self.re_annotation_project
                     )
                     re_annotation_samples["is_reannotation"] = True
-                    annotations_dict[current_annotator].append(re_annotation_samples)
+                    annotations_dict[current_annotator].append(re_annotation_samples)  # noqa
 
             # double annotations
             if self.double_annotation_project > 0:
@@ -240,16 +247,16 @@ class SampleDistributor:
                 )
                 first_double_samples["is_reannotation"] = False
 
-                annotations_dict[current_annotator].append(first_double_samples)
-                annotations_dict[link_1_annotator].append(first_double_samples)
+                annotations_dict[current_annotator].append(first_double_samples)  # noqa
+                annotations_dict[link_1_annotator].append(first_double_samples)  # noqa
 
                 df, second_double_samples = sample_without_replacement(
                     df, self.double_annotation_project
                 )
                 second_double_samples["is_reannotation"] = False
 
-                annotations_dict[current_annotator].append(second_double_samples)
-                annotations_dict[link_2_annotator].append(second_double_samples)
+                annotations_dict[current_annotator].append(second_double_samples)  # noqa
+                annotations_dict[link_2_annotator].append(second_double_samples)  # noqa
 
         if save_path is None:
             annotations_dict["left_over"] = df
@@ -260,9 +267,9 @@ class SampleDistributor:
             user_df = pd.concat(df_list, ignore_index=True)
             # sample from all if not from singles
             if all_reannotation:
-                re_annotation_samples = user_df.sample(self.double_annotation_project)
+                re_annotation_samples = user_df.sample(self.double_annotation_project)  # noqa
                 re_annotation_samples["is_reannotation"] = True
-                user_df = pd.concat([user_df, re_annotation_samples], ignore_index=True)
+                user_df = pd.concat([user_df, re_annotation_samples], ignore_index=True)  # noqa
             # save df
             user_df.to_csv(f"{save_path}/{user}.csv", index=False)
 
