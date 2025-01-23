@@ -1,5 +1,6 @@
 import os
 from functools import reduce
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -27,9 +28,8 @@ def generate_annotator_label(
         return np.random.choice(list(set(range(num_classes)) - {true_label}))
 
 
-def generate_samples(
-    sample_distributor: SampleDistributor, num_classes: int
-) -> pd.DataFrame:
+def generate_samples(sample_distributor: SampleDistributor,
+                     num_classes: int, seed=None) -> pd.DataFrame:
     """Generate a set of anntotations to be tested in annotator
        reliability assessment. Allows control over how good each
        annotator should be, allowing the assessment of the annotation
@@ -43,6 +43,8 @@ def generate_samples(
     # current annotator single annotations
     assert sample_distributor.num_samples is not None
     num_samples = round(1.5 * sample_distributor.num_samples)
+    if seed is not None:
+        np.random.seed(seed)
     true_labels = np.random.randint(0, num_classes, size=num_samples)
     dataset = pd.DataFrame({"true_label": true_labels})
 
@@ -162,18 +164,19 @@ def user_df_merge(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
     return merged
 
 
-def concat_annotations(annotation_path: str, num_annotators: int):
+def concat_annotations(annotation_path: str,
+                       annotators: List[str]):
     """Concatenate annotations based on sample_id.
 
     Args:
         annotation_path (str): path to dir containing csv annotations.
-        num_annotators (int): number of annotators.
+        annotators list(str): list of annotator names.
 
     Returns:
         pd.DataFrame: dataframe containing all annotations.
     """
     df_list = [
-        pd.read_csv(f"{annotation_path}/user_{i+1}.csv") for i in range(num_annotators)
+        pd.read_csv(f"{annotation_path}/user_{name}.csv") for name in annotators
     ]
     annotations = reduce(user_df_merge, df_list)
     return annotations
