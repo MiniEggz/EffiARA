@@ -3,15 +3,24 @@ import re
 import numpy as np
 
 
-def check_user_format(user_x):
+def check_user_format(user_x, prefixed=True):
     """Check that user is in the correct format of
     the string user_{username} or re_user_{username}.
+
+    Args:
+        prefixed (bool): If True, checks that user_x has a (re_)user_ prefix.
+                         If False, checks that user_x does NOT have the prefix.
+                         Default True.
     """
     matched = re.match(r"(re_)?user_\w+", user_x)
-    if matched is None:
-        raise ValueError(
-            "User parameters must be in the form user_x or re_user_x, where x is some string. Got '{user_x}'."
-        )
+    if prefixed is True:
+        passed = matched is not None
+        error_str = "User name must be in the form user_x or re_user_x, where x is some string. Got '{user_x}'."
+    else:
+        passed = matched is None
+        error_str = "User name must not have a '(re_)user_' prefix. Got '{user_x}'."
+    if passed is False:
+        raise ValueError(error_str)
 
 
 def is_prob_label(x, num_classes):
