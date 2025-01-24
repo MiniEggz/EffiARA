@@ -176,19 +176,15 @@ from effiara.preparation import SampleDistributor
 if __name__ == "__main__":
     os.makedirs("data", exist_ok=True)
 
-    annotator_dict = {
-        "user_aa": 0.95,
-        "user_bb": 0.67,
-        "user_cc": 0.58,
-        "user_dd": 0.63,
-        "user_ee": 0.995,
-        "user_ff": 0.45,
-    }
-    annotator_names = [k.split('_')[-1] for k in annotator_dict.keys()]
+    # Percentage correctness for each annotator.
+    annotators = None
+    # If annotators is None, names are set to integers in SampleDistributor.
+    #annotators = ["aa", "bb", "cc", "dd", "ee", "ff"]
+    correctness = [0.95, 0.67, 0.58, 0.63, 0.995, 0.45]
 
     sample_distributor = SampleDistributor(
-        #num_annotators=len(annotator_dict),
-        annotators=annotator_names,
+        annotators=annotators,
+        num_annotators=len(correctness),
         time_available=10,
         annotation_rate=60,
         # num_samples=2160,
@@ -202,15 +198,17 @@ if __name__ == "__main__":
     df = generate_samples(sample_distributor, num_classes, seed=0)
     sample_distributor.distribute_samples(df.copy(), "./data", all_reannotation=True)
 
+    annotator_dict = dict(zip(sample_distributor.annotators, correctness))
+    print(annotator_dict)
     annotate_samples(annotator_dict, "./data", num_classes)
-    annotations = concat_annotations("./data/annotations", annotator_names)
+    annotations = concat_annotations("./data/annotations", sample_distributor.annotators)
     print(annotations)
 
     label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
-    label_generator = EffiLabelGenerator(6, label_mapping, annotators=annotator_names)
+    label_generator = EffiLabelGenerator(sample_distributor.annotators, label_mapping)
     effiannos = Annotations(annotations, label_generator)
     print(effiannos.get_reliability_dict())
-    #effiannos.display_annotator_graph()
+    effiannos.display_annotator_graph()
     # Equivalent to the graph, but as a heatmap
     effiannos.display_agreement_heatmap()
     # Agreements between two subsets of annotators
