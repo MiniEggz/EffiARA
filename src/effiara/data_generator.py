@@ -8,6 +8,7 @@ import pandas as pd
 from effiara.annotator_reliability import Annotations
 from effiara.effi_label_generator import EffiLabelGenerator
 from effiara.preparation import SampleDistributor
+from effiara.utils import check_user_format
 
 
 def generate_annotator_label(
@@ -59,41 +60,43 @@ def annotate_samples(
     """Annotate samples per annotator.
 
     Args:
-        annotator_dict (dict): dictionary of annotator and their
-            percentage correctness.
+        annotator_dict (dict): dictionary of annotator names 
+                               and their percentage correctness.
         data_path (str): path where sample CSVs are stored.
         num_classes (int): the number of possible labels.
     """
     # loop through each annotator
     os.makedirs(f"{data_path}/annotations", exist_ok=True)
     for user in annotator_dict.keys():
+        # Users should NOT have a (re_)user_ prefix.
+        check_user_format(user, prefixed=False)
         # load the df
-        df = pd.read_csv(f"{data_path}/{user}.csv")
+        df = pd.read_csv(f"{data_path}/user_{user}.csv")
 
         # annotate samples
-        df.loc[~df["is_reannotation"], f"{user}_label"] = df.loc[
+        df.loc[~df["is_reannotation"], f"user_{user}_label"] = df.loc[
             ~df["is_reannotation"], "true_label"
         ].apply(
             generate_annotator_label,
             correctness_probability=annotator_dict[user],
             num_classes=num_classes,
         )
-        df.loc[~df["is_reannotation"], f"{user}_confidence"] = 5
-        df.loc[~df["is_reannotation"], f"{user}_secondary"] = np.nan
+        df.loc[~df["is_reannotation"], f"user_{user}_confidence"] = 5
+        df.loc[~df["is_reannotation"], f"user_{user}_secondary"] = np.nan
 
         # reannotations
-        df.loc[df["is_reannotation"], f"re_{user}_label"] = df.loc[
+        df.loc[df["is_reannotation"], f"re_user_{user}_label"] = df.loc[
             df["is_reannotation"], "true_label"
         ].apply(
             generate_annotator_label,
             correctness_probability=annotator_dict[user],
             num_classes=num_classes,
         )
-        df.loc[df["is_reannotation"], f"re_{user}_confidence"] = 5
-        df.loc[df["is_reannotation"], f"re_{user}_secondary"] = np.nan
+        df.loc[df["is_reannotation"], f"re_user_{user}_confidence"] = 5
+        df.loc[df["is_reannotation"], f"re_user_{user}_secondary"] = np.nan
 
         # save csv
-        df.to_csv(f"{data_path}/annotations/{user}.csv", index=False)
+        df.to_csv(f"{data_path}/annotations/user_{user}.csv", index=False)
 
 
 def consolidate_reannotation(group: pd.DataFrame) -> pd.Series:
@@ -175,6 +178,8 @@ def concat_annotations(annotation_path: str,
     Returns:
         pd.DataFrame: dataframe containing all annotations.
     """
+    for name in annotators:
+        check_user_format(name, prefixed=False)
     df_list = [
         pd.read_csv(f"{annotation_path}/user_{name}.csv") for name in annotators
     ]
