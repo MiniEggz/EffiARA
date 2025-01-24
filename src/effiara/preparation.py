@@ -5,11 +5,14 @@ This includes:
     * calculating the distribution of samples
 """
 
+import warnings
 from typing import Optional, List
 
 import pandas as pd
 from sympy import Eq, solve, symbols
 from sympy.core.symbol import Symbol
+
+from effiara.utils import check_user_format
 
 
 def sample_without_replacement(
@@ -62,9 +65,10 @@ class SampleDistributor:
         double_proportion: Optional[float] = None,
         re_proportion: Optional[float] = None,
     ):
-        self.annotators = annotators
-        if self.annotators is not None:
-            num_annotators = len(annotators)
+        if annotators is not None:
+            if num_annotators != len(annotators):
+                warnings.warn(f"Length of annotators and num_annotators do not match ({len(annotators)} != {num_annotators}). Setting num_annotators to {len(annotators)}")  # noqa
+                num_annotators = len(annotators)
         self.get_variables(
             num_annotators,
             time_available,
@@ -73,8 +77,14 @@ class SampleDistributor:
             double_proportion,
             re_proportion,
         )
-        if self.annotators is None:
-            self.annotators = list(range(1, self.num_annotators + 1))
+        if annotators is None:
+            self.annotators = [str(i) for i in range(1, self.num_annotators + 1)]
+        else:
+            # Check that annotators do not have any prefixes.
+            for name in annotators:
+                check_user_format(name, prefixed=False)
+            self.annotators = annotators
+        self.prefixed_annotators = [f"user_{name}" for name in self.annotators]
 
     def _assign_variables(self, variables: dict):
         """Assign class level variables from dict of symbolised
@@ -211,17 +221,19 @@ class SampleDistributor:
         df["sample_id"] = range(len(df))
 
         # create annotator dict
-        annotations_dict = {f"user_{user}": [] for user in self.annotators}
+        annotations_dict = {user: [] for user in self.annotators}
 
         # TODO: maybe add some handling of save path?
-        for (i, user) in enumerate(self.annotators):
-            current_annotator = f"user_{user}"
+        for (i, current_annotator) in enumerate(self.annotators):
+            #current_annotator = f"user_{user}"
             link_1_idx = (i+1) % self.num_annotators
             link_2_idx = (i+2) % self.num_annotators
-            user_1 = self.annotators[link_1_idx]
-            user_2 = self.annotators[link_2_idx]
-            link_1_annotator = f"user_{user_1}"
-            link_2_annotator = f"user_{user_2}"
+            link_1_annotator = self.annotators[link_1_idx]
+            link_2_annotator = self.annotators[link_2_idx]
+            #user_1 = self.annotators[link_1_idx]
+            #user_2 = self.annotators[link_2_idx]
+            #link_1_annotator = f"user_{user_1}"
+            #link_2_annotator = f"user_{user_2}"
             re_annotation_samples = None
 
             # single annotations
@@ -271,7 +283,7 @@ class SampleDistributor:
                 re_annotation_samples["is_reannotation"] = True
                 user_df = pd.concat([user_df, re_annotation_samples], ignore_index=True)  # noqa
             # save df
-            user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+            user_df.to_csv(f"{save_path}/user_{user}.csv", index=False)
 
         # save all left over samples
         df.to_csv(f"{save_path}/left_over.csv", index=False)

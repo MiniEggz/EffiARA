@@ -2,22 +2,19 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
+from effiara.utils import check_user_format
+
 
 class LabelGenerator(ABC):
     """Abstract class for generation of labels for set of annotations."""
 
     def __init__(self,
-                 num_annotators: int,
-                 label_mapping: dict,
-                 annotators: list = None):
-        self.num_annotators = num_annotators
-        # Set annotators to list of ints if not given.
-        if annotators is None:
-            self.annotators = list(range(1, self.num_annotators + 1))
-        else:
-            self.annotators = annotators
-            if len(self.annotators) != self.num_annotators:
-                raise ValueError(f"Number of annotator names ({len(annotators)}) != num_annotators ({num_annotators})!")
+                 annotators: list,
+                 label_mapping: dict):
+        for name in annotators:
+            check_user_format(name, prefixed=False)
+        self.annotators = annotators
+        self.num_annotators = len(self.annotators)
         self.label_mapping = label_mapping
         self.num_classes = len(label_mapping)
 
