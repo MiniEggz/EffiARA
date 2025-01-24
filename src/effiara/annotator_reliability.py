@@ -61,9 +61,9 @@ class Annotations(object):
         for replacement, to_replace in self.merge_labels.items():
             for label in to_replace:
                 for user in self.annotators:
-                    label_col = f"user_{user}_label"
+                    label_col = f"{user}_label"
                     re_label_col = "re_" + label_col
-                    secondary_col = f"user_{user}_secondary"
+                    secondary_col = f"{user}_secondary"
                     re_secondary_col = "re_" + secondary_col
 
                     # find and replace in each col
@@ -92,7 +92,7 @@ class Annotations(object):
         """
         G = nx.Graph()
         for user in self.annotators:
-            G.add_node(f"user_{user}", reliability=1)
+            G.add_node(user, reliability=1)
         return G
 
     def normalise_edge_property(self, property):
@@ -142,10 +142,7 @@ class Annotations(object):
         """
         inter_annotator_agreement_scores = {}
         pairs = combinations(self.annotators, 2)
-        for (user1, user2) in pairs:
-            current_annotator = f"user_{user1}"
-            link_annotator = f"user_{user2}"
-
+        for (current_annotator, link_annotator) in pairs:
             # TODO: optimise use of pair df rather than generate twice
             pair_df = retrieve_pair_annotations(
                     self.df, current_annotator, link_annotator)
@@ -173,13 +170,12 @@ class Annotations(object):
     def calculate_intra_annotator_agreement(self):
         """Calculate intra-annotator agreement."""
         for user in self.annotators:
-            user_name = f"user_{user}"
-            re_user_name = f"re_user_{user}"
+            re_user = f"re_{user}"
             try:
-                self.G.nodes[user_name]["intra_agreement"] = pairwise_agreement(  # noqa
+                self.G.nodes[user]["intra_agreement"] = pairwise_agreement(  # noqa
                     self.df,
-                    user_name,
-                    re_user_name,
+                    user,
+                    re_user,
                     self.label_mapping,
                     num_classes=self.num_classes,
                     metric=self.agreement_metric,
@@ -187,9 +183,9 @@ class Annotations(object):
             except KeyError:
                 warnings.warn(
                     "Key error for calculating intra-annotator agreement. Setting all intra-annotator agreement values to 1.")  # noqa
-                self.G.nodes[user_name]["intra_agreement"] = 1
+                self.G.nodes[user]["intra_agreement"] = 1
             except Exception as e:
-                self.G.nodes[user_name]["intra_agreement"] = 1
+                self.G.nodes[user]["intra_agreement"] = 1
                 print(e)
 
     def calculate_avg_inter_annotator_agreement(self):
@@ -372,7 +368,7 @@ class Annotations(object):
             # slice the agreement matrix.
             mat = mat[matrows][:, matcols]
             agreements = [(name, agree) for (name, agree) in agreements
-                          if name.split('_', maxsplit=1)[1] in annotators]
+                          if name in annotators]
 
 
         sorted_by_agreement = sorted(enumerate(agreements),
@@ -388,8 +384,7 @@ class Annotations(object):
         #  2) otherwise, we're comparing two possibly distinct sets of
         #     annotators, so we display the full matrix, with rows and
         #     columns sliced according to the annotators specified.
-        sorted_users = [user.split('_', maxsplit=1)[1]
-                        for (i, (user, agree)) in sorted_by_agreement]
+        sorted_users = [user for (i, (user, agree)) in sorted_by_agreement]
         if other_annotators is None:
             mat = mat[:, ordered_row_idxs]
             # Don't display upper triangle, since its redundant.

@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from effiara.utils import check_user_format
-
 
 class LabelGenerator(ABC):
     """Abstract class for generation of labels for set of annotations."""
@@ -11,8 +9,6 @@ class LabelGenerator(ABC):
     def __init__(self,
                  annotators: list,
                  label_mapping: dict):
-        for name in annotators:
-            check_user_format(name, prefixed=False)
         self.annotators = annotators
         self.num_annotators = len(self.annotators)
         self.label_mapping = label_mapping

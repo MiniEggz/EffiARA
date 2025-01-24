@@ -1,4 +1,5 @@
 import os
+import argparse
 
 from effiara.annotator_reliability import Annotations
 from effiara.data_generator import (
@@ -11,12 +12,17 @@ from effiara.preparation import SampleDistributor
 
 # example for creating set of samples, annotations, and sticking them together
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--usernames",action="store_true", default=False)
+    args = parser.parse_args()
+
     os.makedirs("data", exist_ok=True)
 
-    # Percentage correctness for each annotator.
-    annotators = None
     # If annotators is None, names are set to integers in SampleDistributor.
-    #annotators = ["aa", "bb", "cc", "dd", "ee", "ff"]
+    annotators = None
+    if args.usernames is True:
+        annotators = ["aa", "bb", "cc", "dd", "ee", "ff"]
+    # Percentage correctness for each annotator.
     correctness = [0.95, 0.67, 0.58, 0.63, 0.995, 0.45]
 
     sample_distributor = SampleDistributor(

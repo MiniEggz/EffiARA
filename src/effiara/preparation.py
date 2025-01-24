@@ -12,8 +12,6 @@ import pandas as pd
 from sympy import Eq, solve, symbols
 from sympy.core.symbol import Symbol
 
-from effiara.utils import check_user_format
-
 
 def sample_without_replacement(
     df: pd.DataFrame, n: int
@@ -78,13 +76,9 @@ class SampleDistributor:
             re_proportion,
         )
         if annotators is None:
-            self.annotators = [str(i) for i in range(1, self.num_annotators + 1)]
+            self.annotators = [f"user_{i}" for i in range(1, self.num_annotators + 1)]
         else:
-            # Check that annotators do not have any prefixes.
-            for name in annotators:
-                check_user_format(name, prefixed=False)
             self.annotators = annotators
-        self.prefixed_annotators = [f"user_{name}" for name in self.annotators]
 
     def _assign_variables(self, variables: dict):
         """Assign class level variables from dict of symbolised
@@ -193,7 +187,9 @@ class SampleDistributor:
             df (pd.DataFrame): dataframe containing samples with
                 each row being a separate sample - using a copy
                 is recommended.
-            save_path (str): dir path to save all data to.
+            save_path (str): (Optional) If not None, dir path to save all data to.
+                             If not supplied, a dict of allocations is returned.
+                             Default None.
             all_reannotation (bool): whether re-annotations should be sampled
                 from all the user's annotations rather than just single
                 annotations. In this case, a double annotation project amount
@@ -225,15 +221,10 @@ class SampleDistributor:
 
         # TODO: maybe add some handling of save path?
         for (i, current_annotator) in enumerate(self.annotators):
-            #current_annotator = f"user_{user}"
             link_1_idx = (i+1) % self.num_annotators
             link_2_idx = (i+2) % self.num_annotators
             link_1_annotator = self.annotators[link_1_idx]
             link_2_annotator = self.annotators[link_2_idx]
-            #user_1 = self.annotators[link_1_idx]
-            #user_2 = self.annotators[link_2_idx]
-            #link_1_annotator = f"user_{user_1}"
-            #link_2_annotator = f"user_{user_2}"
             re_annotation_samples = None
 
             # single annotations
@@ -283,7 +274,7 @@ class SampleDistributor:
                 re_annotation_samples["is_reannotation"] = True
                 user_df = pd.concat([user_df, re_annotation_samples], ignore_index=True)  # noqa
             # save df
-            user_df.to_csv(f"{save_path}/user_{user}.csv", index=False)
+            user_df.to_csv(f"{save_path}/{user}.csv", index=False)
 
         # save all left over samples
         df.to_csv(f"{save_path}/left_over.csv", index=False)
