@@ -340,7 +340,7 @@ class SampleDistributor:
             if is_reanno is False and username in self.annotators:
                 annotator_cols.append(lc)
                 usernames.append(username)
-        assert len(annotator_cols) > 0, "No annotations found!"
+        assert len(annotator_cols) > 0, "No annotations found in dataframe!"
 
         # First collect the full sample pool for each annotator
         sample_pools = {}
@@ -348,7 +348,8 @@ class SampleDistributor:
             # nan examples haven't been annotated by this user
             sample_pools[username] = list(df.index[df[ann_col].isna()])
 
-        # Allocate examples round-robin style
+        # Allocate examples round-robin style, which ensures each
+        # annotator gets approximately the same number of samples.
         idxs_to_drop = []
         num_failed = 0
         user_idx = 0
