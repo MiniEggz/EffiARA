@@ -5,6 +5,7 @@ This includes:
     * calculating the distribution of samples
 """
 
+import re
 import warnings
 from typing import Optional, List
 
@@ -278,6 +279,108 @@ class SampleDistributor:
 
         # save all left over samples
         df.to_csv(f"{save_path}/left_over.csv", index=False)
+
+    def redistribute_samples(
+        self,
+        df: pd.DataFrame,
+        save_path: str = None,
+        none_left_over: bool = False
+    ):
+        """Re-distribute samples based on sample distributor
+           settings, avoiding allocating samples to annotators
+           that have already annotated it.
+
+        Args:
+            df (pd.DataFrame): dataframe containing samples with
+                each row being a separate sample. Must contain existing
+                annotations in columns of the format {user}_label.
+            save_path (str): (Optional) If not None, dir path to save all data to.
+                             If not supplied, a dict of allocations is returned.
+                             Default None.
+            none_left_over (bool): If True, allocate left over samples to annotators,
+                                   which will result in an unequal distribution.
+                                   Default False.
+
+        Returns:
+        If save_path is not given
+            annotations (dict): dict of annotator -> pd.DataFrame with allocations
+            left_over (pd.DataFrame): any samples that were unable to be allocated
+        """
+        assert self.double_proportion == 0.0, "Double annotation not yet supported"
+        assert self.re_proportion == 0.0, "Reannotation not yet supported"
+        assert self.num_samples is not None, "num_samples must be set"
+        assert self.num_annotators is not None, "num_annotators must be set"
+        assert (
+            self.double_annotation_project is not None
+        ), "double_annotation_project must be set"
+        assert self.double_proportion is not None, "double_proportion must be set"  # noqa
+        assert (
+            self.single_annotation_project is not None
+        ), "single_annotation_project must be set"
+        assert (
+            self.re_annotation_project is not None
+        ), "re_annotation_project must be set"
+
+        if len(df) < self.num_samples:
+            raise ValueError(
+                f"DataFrame does not contain enough samples. len(df) [{len(df)}] < num_samples [{self.num_samples}]."  # noqa
+            )
+
+        # to hold allocations
+        annotations = {user: [] for user in self.annotators}
+
+        user_re = re.compile(r"(re_)?([\w -_]+)_.+")
+        label_cols = [c for c in df.columns if c.endswith("_label")]
+        annotator_cols = []
+        usernames = []
+        for lc in label_cols:
+            user_re_match = user_re.match(lc)
+            is_reanno = user_re_match.group(1) is not None
+            username = user_re_match.group(2)
+            if is_reanno is False and username in self.annotators:
+                annotator_cols.append(lc)
+                usernames.append(username)
+        assert len(annotator_cols) > 0, "No annotations found!"
+
+        # First collect the full sample pool for each annotator
+        sample_pools = {}
+        for (ann_col, username) in zip(annotator_cols, usernames):
+            # nan examples haven't been annotated by this user
+            sample_pools[username] = list(df.index[df[ann_col].isna()])
+
+        # Allocate examples round-robin style
+        idxs_to_drop = []
+        num_failed = 0
+        user_idx = 0
+        for (i, sample) in df.iterrows():
+            num_users_tried = 0
+            while True:
+                cur_idx = user_idx % len(annotator_cols)
+                ann_col = annotator_cols[cur_idx]
+                username = usernames[cur_idx]
+                num_users_tried += 1
+                user_idx += 1
+                if i in sample_pools[username]:
+                    annotations[username].append(sample)
+                    idxs_to_drop.append(i)
+                    break
+                if num_users_tried == len(usernames):
+                    num_failed += 1
+                    break
+
+        for (user, annos) in annotations.items():
+            annotations[user] = pd.DataFrame(annos)
+
+        df.drop(idxs_to_drop, inplace=True)
+        if len(df) > 0:
+            warnings.warn(f"Not all examples were able to be allocated ({len(df)})! Try increasing the number of annotators.")  # noqa
+            annotations["left_over"] = df
+
+        if save_path is None:
+            return annotations, df
+
+        for user, user_df in annotations.items():
+            user_df.to_csv(f"{save_path}/{user}.csv", index=False)
 
     def __str__(self):
         """String representation of sample distribution."""
