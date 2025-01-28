@@ -1,11 +1,16 @@
+import warnings
+from itertools import combinations, product
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import seaborn as sns
 
 from effiara.agreement import pairwise_agreement
+from effiara.utils import retrieve_pair_annotations
 
 
-class Annotations:
+class Annotations(object):
     """Class to hold all annotation information for the EffiARA annotation
     framework. Methods include inter- and intra- annotator agreement
     calculations, as well the overall reliability calculation and other
@@ -21,6 +26,7 @@ class Annotations:
     ):
         # set instance variables
         self.label_generator = label_generator
+        self.annotators = label_generator.annotators
         self.num_annotators = label_generator.num_annotators
         self.label_mapping = label_generator.label_mapping
         self.num_classes = label_generator.num_classes
@@ -39,13 +45,11 @@ class Annotations:
         # generate user soft labels
         self.df = self.label_generator.add_annotation_prob_labels(self.df)
 
-        # calculate intra annotator
+        # calculate agreements
         self.G = self.init_annotator_graph()
-
         self.calculate_intra_annotator_agreement()
-
-        # calculate inter_annotator agreement
         self.calculate_inter_annotator_agreement()
+        self.calculate_annotator_reliability()
 
     def replace_labels(self):
         """Merge labels. Uses find and replace so do not switch labels e.g.
@@ -54,25 +58,23 @@ class Annotations:
         if not self.merge_labels:
             return
 
-        # TODO: generalise so you can replace all columns that might have something
         for replacement, to_replace in self.merge_labels.items():
             for label in to_replace:
-                for i in range(1, self.num_annotators + 1):
-                    # each label col
-                    label_col = f"user_{i}_label"
+                for user in self.annotators:
+                    label_col = f"{user}_label"
                     re_label_col = "re_" + label_col
-                    secondary_col = f"user_{i}_secondary"
+                    secondary_col = f"{user}_secondary"
                     re_secondary_col = "re_" + secondary_col
 
                     # find and replace in each col
-                    self.df[label_col] = self.df[label_col].replace(label, replacement)
+                    self.df[label_col] = self.df[label_col].replace(label, replacement)  # noqa
                     self.df[secondary_col] = self.df[secondary_col].replace(
                         label, replacement
                     )
                     self.df[re_label_col] = self.df[re_label_col].replace(
                         label, replacement
                     )
-                    self.df[re_secondary_col] = self.df[re_secondary_col].replace(
+                    self.df[re_secondary_col] = self.df[re_secondary_col].replace(  # noqa
                         label, replacement
                     )
 
@@ -89,8 +91,8 @@ class Annotations:
         This means each annotator will initially be weighted equally.
         """
         G = nx.Graph()
-        for i in range(1, self.num_annotators + 1):
-            G.add_node(f"user_{i}", reliability=1)
+        for user in self.annotators:
+            G.add_node(user, reliability=1)
         return G
 
     def normalise_edge_property(self, property):
@@ -105,8 +107,7 @@ class Annotations:
         avg = total / num_edges
         if avg < 0:
             raise ValueError(
-                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa."
-            )
+                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa.")  # noqa
 
         for _, _, edge in self.G.edges(data=True):
             edge[property] /= avg
@@ -123,50 +124,44 @@ class Annotations:
         avg = total / num_nodes
         if avg < 0:
             raise ValueError(
-                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa."
-            )
+                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa.")  # noqa
 
         for node in self.G.nodes():
             self.G.nodes[node][property] /= avg
 
-    def calculate_inter_annotator_agreement(self):
+    def calculate_inter_annotator_agreement(self, threshold=30):
         """Calculate the inter-annotator agreement between each
         pair of annotators. Each agreement value will be
         represented on the edges of the graph between nodes
         that are representative of each annotator.
+
+        Args:
+            threshold (int): threshold number of samples required
+                for a link to be made between two annotators.
+
         """
         inter_annotator_agreement_scores = {}
-        for i in range(self.num_annotators):
-            # get the current annotators and 2 linked
-            current_annotator = f"user_{i+1}"
-            link_1_annotator = f"user_{(i+1) % self.num_annotators + 1}"
-            link_2_annotator = f"user_{(i+2) % self.num_annotators + 1}"
-
-            # update inter annotator agreement scores
-            inter_annotator_agreement_scores[(current_annotator, link_1_annotator)] = (
-                pairwise_agreement(
-                    self.df,
-                    current_annotator,
-                    link_1_annotator,
-                    self.label_mapping,
-                    num_classes=self.num_classes,
-                    metric=self.agreement_metric,
+        pairs = combinations(self.annotators, 2)
+        for (current_annotator, link_annotator) in pairs:
+            # TODO: optimise use of pair df rather than generate twice
+            pair_df = retrieve_pair_annotations(
+                    self.df, current_annotator, link_annotator)
+            if len(pair_df) >= threshold:
+                pair = (current_annotator, link_annotator)
+                inter_annotator_agreement_scores[pair] = (
+                    pairwise_agreement(
+                        self.df,
+                        current_annotator,
+                        link_annotator,
+                        self.label_mapping,
+                        num_classes=self.num_classes,
+                        metric=self.agreement_metric,
+                    )
                 )
-            )
-            inter_annotator_agreement_scores[(current_annotator, link_2_annotator)] = (
-                pairwise_agreement(
-                    self.df,
-                    current_annotator,
-                    link_2_annotator,
-                    self.label_mapping,
-                    num_classes=self.num_classes,
-                    metric=self.agreement_metric,
-                )
-            )
 
-            # add all agreement scores to the graph
-            for users, score in inter_annotator_agreement_scores.items():
-                self.G.add_edge(users[0], users[1], agreement=score)
+        # add all agreement scores to the graph
+        for users, score in inter_annotator_agreement_scores.items():
+            self.G.add_edge(users[0], users[1], agreement=score)
 
         self.overall_inter_annotator_agreement = np.mean(
             list(inter_annotator_agreement_scores.values())
@@ -174,25 +169,23 @@ class Annotations:
 
     def calculate_intra_annotator_agreement(self):
         """Calculate intra-annotator agreement."""
-        for i in range(self.num_annotators):
-            user_name = f"user_{i+1}"
-            re_user_name = f"re_user_{i+1}"
+        for user in self.annotators:
+            re_user = f"re_{user}"
             try:
-                self.G.nodes[user_name]["intra_agreement"] = pairwise_agreement(
+                self.G.nodes[user]["intra_agreement"] = pairwise_agreement(  # noqa
                     self.df,
-                    user_name,
-                    re_user_name,
+                    user,
+                    re_user,
                     self.label_mapping,
                     num_classes=self.num_classes,
                     metric=self.agreement_metric,
                 )
             except KeyError:
-                print(
-                    "WARNING: Key error for calculating intra-annotator agreement. Setting all intra-annotator agreement values to 1."
-                )
-                self.G.nodes[user_name]["intra_agreement"] = 1
+                warnings.warn(
+                    "Key error for calculating intra-annotator agreement. Setting all intra-annotator agreement values to 1.")  # noqa
+                self.G.nodes[user]["intra_agreement"] = 1
             except Exception as e:
-                self.G.nodes[user_name]["intra_agreement"] = 1
+                self.G.nodes[user]["intra_agreement"] = 1
                 print(e)
 
     def calculate_avg_inter_annotator_agreement(self):
@@ -214,16 +207,17 @@ class Annotations:
                 weighted_agreement_sum / weights_sum if weights_sum else 0
             )
 
-    def calculate_annotator_reliability(self, alpha=0.5, beta=0.5, epsilon=0.001):
+    def calculate_annotator_reliability(
+            self, alpha=0.5, beta=0.5, epsilon=0.001):
         """Recursively calculate annotator reliability, using
            intra-annotator agreement, inter-annotator agreement,
            or a mixture, controlled by the alpha and beta parameters.
            Alpha and Beta must sum to 1.0.
 
         Args:
-            alpha (float): value between 0 and 1, controlling weight of intra-annotator agreement.
-            beta (float): value between 0 and 1, controlling weight of inter-annotator agreement.
-            epsilon (float): controls the maximum change from the last iteration to indicate convergence.
+            alpha (float): value between 0 and 1, controlling weight of intra-annotator agreement.  # noqa
+            beta (float): value between 0 and 1, controlling weight of inter-annotator agreement.  # noqa
+            epsilon (float): controls the maximum change from the last iteration to indicate convergence.  # noqa
         """
         if alpha + beta != 1:
             raise ValueError("Alpha and Beta must sum to 1.0.")
@@ -236,23 +230,24 @@ class Annotations:
         while abs(max_change) > epsilon:
             print("Running iteration.")
             previous_reliabilties = {
-                node: data["reliability"] for node, data in self.G.nodes(data=True)
-            }
+                    node: data["reliability"]
+                    for (node, data) in self.G.nodes(data=True)}
 
             # calculate the new inter annotator agreement scores
             self.calculate_avg_inter_annotator_agreement()
 
             # update reliability
             for _, node in self.G.nodes(data=True):
-                node["reliability"] = float(
-                    alpha * node["intra_agreement"] + beta * node["avg_inter_agreement"]
-                )
+                intra = node["intra_agreement"]
+                inter = node["avg_inter_agreement"]
+                rel = float(alpha * intra + beta * inter)
+                node["reliability"] = rel
             self.normalise_node_property("reliability")
 
             # find largest change as a marker
             max_change = max(
                 [
-                    abs(self.G.nodes[node]["reliability"] - previous_reliabilties[node])
+                    abs(self.G.nodes[node]["reliability"] - previous_reliabilties[node])  # noqa
                     for node in self.G.nodes()
                 ]
             )
@@ -274,7 +269,8 @@ class Annotations:
         Returns:
             dict: dictionary of key=username, value=reliability.
         """
-        return {node: self.G.nodes[node]["reliability"] for node in self.G.nodes()}
+        return {node: self.G.nodes[node]["reliability"]
+                for node in self.G.nodes()}
 
     def display_annotator_graph(self, legend=False):
         """Display the annotation graph."""
@@ -284,16 +280,18 @@ class Annotations:
         node_size = 3000
         nx.draw_networkx_nodes(self.G, pos, node_size=node_size)
         nx.draw_networkx_edges(self.G, pos)
-        labels = {node: node[-1] for node in self.G.nodes()}
+        # Get the usernames.
+        labels = {node: node.split('_', maxsplit=1)[-1]
+                  for node in self.G.nodes()}
         nx.draw_networkx_labels(
             self.G, pos, labels=labels, font_color="white", font_size=24
         )
 
         # add inter-annotator agreement to edges
-        edge_labels = {
-            (u, v): f"{d['agreement']:.3f}" for u, v, d in self.G.edges(data=True)
-        }
-        nx.draw_networkx_edge_labels(self.G, pos, edge_labels=edge_labels, font_size=24)
+        edge_labels = {(u, v): f"{d['agreement']:.3f}"
+                       for u, v, d in self.G.edges(data=True)}
+        nx.draw_networkx_edge_labels(
+                self.G, pos, edge_labels=edge_labels, font_size=24)
 
         # adjust text pos for intra-annotator agreement
         for node, (x, y) in pos.items():
@@ -324,12 +322,11 @@ class Annotations:
 
         # legend for reliability
         if legend:
-            reliability_scores = {
-                node: data["reliability"] for node, data in self.G.nodes(data=True)
-            }
-            reliability_text = "Reliability:\n\n" + "\n".join(
-                [f"{node}: {score:.3f}" for node, score in reliability_scores.items()]
-            )
+            reliability_scores = {node: data["reliability"]
+                                  for (node, data) in self.G.nodes(data=True)}
+            texts = [f"{node}: {score:.3f}"
+                     for (node, score) in reliability_scores.items()]
+            reliability_text = "Reliability:\n\n" + "\n".join(texts)
             plt.text(
                 0.05,
                 0.95,
@@ -343,6 +340,61 @@ class Annotations:
 
         # plot
         plt.axis("off")
+        plt.show()
+
+    def display_agreement_heatmap(
+            self,
+            annotators: list = None,
+            other_annotators: list = None):
+        """
+        Plot a heatmap of agreement metric values for the annotators.
+
+        annotators, other_annotators: (Optional) If both are specified
+            compare users given in annotators to those in other_annotators.
+            Otherwise, compare all project annotators to each other.
+        """
+        mat = nx.to_numpy_array(self.G, weight="agreement")
+        # Put intra-agreements on the diagonal
+        intras = nx.get_node_attributes(self.G, "intra_agreement")
+        intras = np.array(list(intras.values()))
+        mat[np.diag_indices(mat.shape[0])] = intras
+        agreements = self.G.nodes(data="avg_inter_agreement")
+        if annotators is not None and other_annotators is not None:
+            matrows = [i for (i, user) in enumerate(self.annotators)
+                       if user in annotators]
+            matcols = [i for (i, user) in enumerate(self.annotators)
+                       if user in other_annotators]
+            # If we're comparing two sets of annotators,
+            # slice the agreement matrix.
+            mat = mat[matrows][:, matcols]
+            agreements = [(name, agree) for (name, agree) in agreements
+                          if name in annotators]
+
+
+        sorted_by_agreement = sorted(enumerate(agreements),
+                                     key=lambda n: n[1][1], reverse=True)
+        ordered_row_idxs = [i for (i, _) in sorted_by_agreement]
+        mat = mat[ordered_row_idxs]
+
+        # We now have two possible cases.
+        #  1) annotators and other_annotators == None: We're comparing
+        #     each annotator to each other. In this case we'll display
+        #     only the lower triangle of the agreement heatmap as the
+        #     the upper triangle will be identical to the lower.
+        #  2) otherwise, we're comparing two possibly distinct sets of
+        #     annotators, so we display the full matrix, with rows and
+        #     columns sliced according to the annotators specified.
+        sorted_users = [user for (i, (user, agree)) in sorted_by_agreement]
+        if other_annotators is None:
+            mat = mat[:, ordered_row_idxs]
+            # Don't display upper triangle, since its redundant.
+            mat[np.triu_indices(mat.shape[0], k=1)] = np.nan
+            xlabs = ylabs = sorted_users
+        else:
+            xlabs = other_annotators
+            ylabs = sorted_users
+        sns.heatmap(mat, annot=True, fmt='.3f',
+                    xticklabels=xlabs, yticklabels=ylabs)
         plt.show()
 
     def __str__(self):

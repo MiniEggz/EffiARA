@@ -117,10 +117,9 @@ class EffiLabelGenerator(LabelGenerator):
         # TODO: convert to list comprehension?
         row_annotators = []
         # loop through each annotator
-        for i in range(1, self.num_annotators + 1):
-            prefix = f"user_{i}"
+        for user in self.annotators:
             # check if user has a soft label column that isn't NaN
-            if isinstance(row[f"{prefix}_soft_label"], np.ndarray):
+            if isinstance(row[f"{user}_soft_label"], np.ndarray):
                 # if so, append prefix to row_annotators list
                 row_annotators.append(prefix)
 
@@ -155,8 +154,8 @@ class EffiLabelGenerator(LabelGenerator):
         Returns:
             row [pd.Series]: Row containing generated soft labels.
         """
-        for i in range(1, self.num_annotators + 1):
-            valid_user_prefixes = [f"user_{i}", f"re_user_{i}"]
+        for user in self.annotators:
+            valid_user_prefixes = [user, f"re_{user}"]
 
             for prefix in valid_user_prefixes:
                 row[f"{prefix}_soft_label"] = self._create_user_soft_label(
@@ -171,7 +170,7 @@ class EffiLabelGenerator(LabelGenerator):
 
         Args:
             row (pd.Series): a single row of the full annotation DataFrame.
-            user_prefix (str): user's prefix in the form user_x or re_user_x.
+            user_prefix (str): user's prefix in the form username or re_username.
 
         Returns:
             np.ndarray: vector of soft labels, with each dimension representing probability

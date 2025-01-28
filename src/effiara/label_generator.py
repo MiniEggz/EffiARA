@@ -6,8 +6,11 @@ import pandas as pd
 class LabelGenerator(ABC):
     """Abstract class for generation of labels for set of annotations."""
 
-    def __init__(self, num_annotators: int, label_mapping: dict):
-        self.num_annotators = num_annotators
+    def __init__(self,
+                 annotators: list,
+                 label_mapping: dict):
+        self.annotators = annotators
+        self.num_annotators = len(self.annotators)
         self.label_mapping = label_mapping
         self.num_classes = len(label_mapping)
 
