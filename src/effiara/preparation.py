@@ -280,11 +280,43 @@ class SampleDistributor:
         # save all left over samples
         df.to_csv(f"{save_path}/left_over.csv", index=False)
 
+    def __str__(self):
+        """String representation of sample distribution."""
+        return (
+            f"Variables:\n"
+            f"num_annotators (n): {self.num_annotators}\n"
+            f"time_available (t): {self.time_available}\n"
+            f"annotation_rate (rho): {self.annotation_rate}\n"
+            f"num_samples (k): {self.num_samples}\n"
+            f"double_proportion (d): {self.double_proportion}\n"
+            f"re_proportion (r): {self.re_proportion}\n"
+            f"double_annotation_project: {self.double_annotation_project}\n"
+            f"single_annotation_project: {self.single_annotation_project}\n"
+            f"re_annotation_project: {self.re_annotation_project}"
+        )
+
+    def output_variables(self):
+        """Output all variables."""
+        print(self)
+
+
+class SampleRedistributor(SampleDistributor):
+
+    @classmethod
+    def from_sample_distributor(cls, sd: SampleDistributor):
+        return cls(annotators=sd.annotators,
+                   num_annotators=sd.num_annotators,
+                   time_available=sd.time_available,
+                   # Need one missing variable
+                   annotation_rate=None,
+                   num_samples=sd.num_samples,
+                   double_proportion=0.0,
+                   re_proportion=0.0)
+
     def redistribute_samples(
         self,
         df: pd.DataFrame,
-        save_path: str = None,
-        none_left_over: bool = False
+        save_path: str = None
     ):
         """Re-distribute samples based on sample distributor
            settings, avoiding allocating samples to annotators
@@ -297,9 +329,6 @@ class SampleDistributor:
             save_path (str): (Optional) If not None, dir path to save all data to.
                              If not supplied, a dict of allocations is returned.
                              Default None.
-            none_left_over (bool): If True, allocate left over samples to annotators,
-                                   which will result in an unequal distribution.
-                                   Default False.
 
         Returns:
         If save_path is not given
@@ -325,6 +354,9 @@ class SampleDistributor:
             raise ValueError(
                 f"DataFrame does not contain enough samples. len(df) [{len(df)}] < num_samples [{self.num_samples}]."  # noqa
             )
+        # Required by other functions
+        if "is_reannotation" not in df.columns:
+            df["is_reannotation"] = False
 
         # to hold allocations
         annotations = {user: [] for user in self.annotators}
@@ -382,22 +414,3 @@ class SampleDistributor:
 
         for user, user_df in annotations.items():
             user_df.to_csv(f"{save_path}/{user}.csv", index=False)
-
-    def __str__(self):
-        """String representation of sample distribution."""
-        return (
-            f"Variables:\n"
-            f"num_annotators (n): {self.num_annotators}\n"
-            f"time_available (t): {self.time_available}\n"
-            f"annotation_rate (rho): {self.annotation_rate}\n"
-            f"num_samples (k): {self.num_samples}\n"
-            f"double_proportion (d): {self.double_proportion}\n"
-            f"re_proportion (r): {self.re_proportion}\n"
-            f"double_annotation_project: {self.double_annotation_project}\n"
-            f"single_annotation_project: {self.single_annotation_project}\n"
-            f"re_annotation_project: {self.re_annotation_project}"
-        )
-
-    def output_variables(self):
-        """Output all variables."""
-        print(self)
