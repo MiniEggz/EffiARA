@@ -1,9 +1,11 @@
-sympy
-numpy
-pandas
+datasets
 krippendorff
 matplotlib
 networkx
-datasets
-transformers
+numpy
+pandas
+scikit-learn
+seaborn
 statsmodels
+sympy
+transformers
