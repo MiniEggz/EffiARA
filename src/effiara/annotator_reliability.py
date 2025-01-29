@@ -10,7 +10,7 @@ from effiara.agreement import pairwise_agreement
 from effiara.utils import retrieve_pair_annotations
 
 
-class Annotations(object):
+class Annotations:
     """Class to hold all annotation information for the EffiARA annotation
     framework. Methods include inter- and intra- annotator agreement
     calculations, as well the overall reliability calculation and other
