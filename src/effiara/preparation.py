@@ -262,10 +262,6 @@ class SampleDistributor:
                 annotations_dict[current_annotator].append(second_double_samples)  # noqa
                 annotations_dict[link_2_annotator].append(second_double_samples)  # noqa
 
-        if save_path is None:
-            annotations_dict["left_over"] = df
-            return annotations_dict
-
         for user, df_list in annotations_dict.items():
             # concat all user's dataframes
             user_df = pd.concat(df_list, ignore_index=True)
@@ -279,6 +275,9 @@ class SampleDistributor:
 
         # save all left over samples
         df.to_csv(f"{save_path}/left_over.csv", index=False)
+
+        annotations_dict["left_over"] = df
+        return annotations_dict
 
     def __str__(self):
         """String representation of sample distribution."""
@@ -331,9 +330,7 @@ class SampleRedistributor(SampleDistributor):
                              Default None.
 
         Returns:
-        If save_path is not given
-            annotations (dict): dict of annotator -> pd.DataFrame with allocations
-            left_over (pd.DataFrame): any samples that were unable to be allocated
+        annotations (dict): dict of annotator -> pd.DataFrame with allocations
         """
         assert self.double_proportion == 0.0, "Double annotation not yet supported"
         assert self.re_proportion == 0.0, "Reannotation not yet supported"
@@ -359,7 +356,7 @@ class SampleRedistributor(SampleDistributor):
             df["is_reannotation"] = False
 
         # to hold allocations
-        annotations = {user: [] for user in self.annotators}
+        annotations_dict = {user: [] for user in self.annotators}
 
         user_re = re.compile(r"(re_)?([\w -_]+)_.+")
         label_cols = [c for c in df.columns if c.endswith("_label")]
@@ -394,23 +391,22 @@ class SampleRedistributor(SampleDistributor):
                 num_users_tried += 1
                 user_idx += 1
                 if i in sample_pools[username]:
-                    annotations[username].append(sample)
+                    annotations_dict[username].append(sample)
                     idxs_to_drop.append(i)
                     break
                 if num_users_tried == len(usernames):
                     num_failed += 1
                     break
 
-        for (user, annos) in annotations.items():
-            annotations[user] = pd.DataFrame(annos)
+        for (user, annos) in annotations_dict.items():
+            annotations_dict[user] = pd.DataFrame(annos)
 
         df.drop(idxs_to_drop, inplace=True)
         if len(df) > 0:
             warnings.warn(f"Not all examples were able to be allocated ({len(df)})! Try increasing the number of annotators.")  # noqa
-            annotations["left_over"] = df
+            annotations_dict["left_over"] = df
 
-        if save_path is None:
-            return annotations, df
-
-        for user, user_df in annotations.items():
+        for user, user_df in annotations_dict.items():
             user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+
+        return annotations_dict
