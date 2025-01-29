@@ -1,3 +1,5 @@
+"""Functions for computing agreement metrics."""
+
 import krippendorff
 import numpy as np
 from sklearn.metrics import cohen_kappa_score
@@ -199,21 +201,11 @@ def pairwise_agreement(
         user_x (str): name of the user in the form user_x.
         user_y (str): name of the user in the form user_y.
         metric (str): agreement metric to use for inter-/intra-annotator agreement:
-                      * krippendorff:
-                          nominal krippendorff's alpha similarity metric on
-                          hard labels only.
-                      * cohen:
-                          nominal cohen's kappa similarity metric on
-                          hard labels only
-                      * fleiss:
-                          nominal fleiss kappa similarity metric on hard
-                          labels only.
-                      * multi_krippendorff:
-                          krippendorff similarity by label for multilabel
-                          classification.
-                      * cosine:
-                          the cosine similarity metric to be used on soft labels.
-
+            - krippendorff: nominal krippendorff's alpha similarity metric on hard labels only.
+            - cohen: nominal cohen's kappa similarity metric on hard labels only.
+            - fleiss: nominal fleiss kappa similarity metric on hard labels only.
+            - multi_krippendorff: krippendorff similarity by label for multilabel classification.
+            - cosine: the cosine similarity metric to be used on soft labels.
 
     Returns:
         float: agreement between user_x and user_y.

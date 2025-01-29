@@ -7,8 +7,8 @@ def is_prob_label(x, num_classes):
     """Check that a value is a soft label (nd vector).
 
     Args:
-        x: some value.
-        num_classes: num classes for n-d vector.
+        x (np.ndarray): a vector of values.
+        num_classes (int): the number of classes.
 
     Returns:
         bool: whether x is a nd numpy vector.

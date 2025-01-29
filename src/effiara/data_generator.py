@@ -1,3 +1,5 @@
+"""Functions for generating datasets and annotations."""
+
 import os
 from functools import reduce
 from typing import List
@@ -21,6 +23,9 @@ def generate_annotator_label(
         correctness_probability (float): the probability that the annotator
             annotates the sample with the correct label.
         num_classes (int): number of classes
+
+    Returns:
+        int: label
     """
     if np.random.rand() < correctness_probability:
         return true_label
@@ -39,6 +44,9 @@ def generate_samples(sample_distributor: SampleDistributor,
         sample_distributor (SampleDistributor): sample distributor giving
             the number of annotations in each project.
         num_classes (int): the number of possible labels.
+
+    Returns:
+        pd.DataFrame: A dataset of samples.
     """
     # current annotator single annotations
     assert sample_distributor.num_samples is not None
@@ -56,7 +64,8 @@ def annotate_samples(
     data_path: str,
     num_classes: int,
 ) -> None:
-    """Annotate samples per annotator.
+    """Annotate samples per annotator, saving the annotations
+    to a new directory.
 
     Args:
         annotator_dict (dict): dictionary of annotator names 
@@ -196,6 +205,9 @@ def generate_data(
         annotator_dict (dict): dictionary of annotator and their
             percentage correctness.
         num_classes (int): the number of possible labels.
+
+    Returns:
+        pd.DataFrame: The generated dataset.
     """
     dataset = pd.DataFrame()
     num_annotators = len(annotator_dict)
