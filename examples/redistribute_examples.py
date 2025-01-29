@@ -57,7 +57,7 @@ if __name__ == "__main__":
     os.makedirs("./data/redistributed")
     sample_redistributor = SampleRedistributor.from_sample_distributor(sample_distributor)  # noqa
     sample_redistributor.set_project_distribution()
-    sample_redistributor.redistribute_samples(
+    sample_redistributor.distribute_samples(
         annotations, "./data/redistributed")
     annotate_samples(annotator_dict, "./data/redistributed", num_classes)
     reannotations = concat_annotations("./data/redistributed/annotations",

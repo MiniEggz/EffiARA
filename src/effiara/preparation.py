@@ -312,12 +312,12 @@ class SampleRedistributor(SampleDistributor):
                    double_proportion=0.0,
                    re_proportion=0.0)
 
-    def redistribute_samples(
+    def distribute_samples(
         self,
         df: pd.DataFrame,
         save_path: str = None
     ):
-        """Re-distribute samples based on sample distributor
+        """Distribute samples based on sample distributor
            settings, avoiding allocating samples to annotators
            that have already annotated it.
 
