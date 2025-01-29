@@ -6,6 +6,7 @@ numpy
 pandas
 scikit-learn
 seaborn
+sphinx
 statsmodels
 sympy
 transformers
