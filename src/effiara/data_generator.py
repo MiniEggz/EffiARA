@@ -2,7 +2,7 @@
 
 import os
 from functools import reduce
-from typing import List
+from typing import List, Dict
 
 import numpy as np
 import pandas as pd
@@ -33,24 +33,22 @@ def generate_annotator_label(
         return np.random.choice(list(set(range(num_classes)) - {true_label}))
 
 
-def generate_samples(sample_distributor: SampleDistributor,
-                     num_classes: int, seed=None) -> pd.DataFrame:
+def generate_samples(num_samples: int,
+                     num_classes: int,
+                     seed=None) -> pd.DataFrame:
     """Generate a set of anntotations to be tested in annotator
        reliability assessment. Allows control over how good each
        annotator should be, allowing the assessment of the annotation
        framework.
 
     Args:
-        sample_distributor (SampleDistributor): sample distributor giving
-            the number of annotations in each project.
+        num_samples (int): the number of samples to generate.
         num_classes (int): the number of possible labels.
+        seed (int): the random seed. Default None.
 
     Returns:
         pd.DataFrame: A dataset of samples.
     """
-    # current annotator single annotations
-    assert sample_distributor.num_samples is not None
-    num_samples = round(1.5 * sample_distributor.num_samples)
     if seed is not None:
         np.random.seed(seed)
     true_labels = np.random.randint(0, num_classes, size=num_samples)
@@ -60,31 +58,31 @@ def generate_samples(sample_distributor: SampleDistributor,
 
 
 def annotate_samples(
-    annotator_dict: dict,
-    data_path: str,
-    num_classes: int,
-) -> None:
-    """Annotate samples per annotator, saving the annotations
-    to a new directory.
+    user_df_dict: Dict[str, pd.DataFrame],
+    user_correctness: Dict[str, float],
+    num_classes: int) -> Dict[str, pd.DataFrame]:
+    """Generate annotations according to annotator correctness.
 
     Args:
-        annotator_dict (dict): dictionary of annotator names 
-                               and their percentage correctness.
-        data_path (str): path where sample CSVs are stored.
-        num_classes (int): the number of possible labels.
-    """
-    # loop through each annotator
-    os.makedirs(f"{data_path}/annotations", exist_ok=True)
-    for user in annotator_dict.keys():
-        # load the df
-        df = pd.read_csv(f"{data_path}/{user}.csv")
+        user_df_dict (Dict[str, pd.DataFrame]): dict from usernames to examples.
+        user_correctness (Dict[str, pd.DataFrame]): dict from usernames to correctness.
+        num_classes (int): number of classes.
 
+    Returns:
+        Dict[str, pd.DataFrame]: The examples with annotations for each user.
+    """
+
+    if set(user_df_dict.keys()) != set(user_correctness.keys()):
+        raise ValueError(f"Found different users in user_df_dict and user_correctness.")  # noqa
+
+    new_user_df_dict = {}
+    for (user, df) in user_df_dict.items():
         # annotate samples
         df.loc[~df["is_reannotation"], f"{user}_label"] = df.loc[
             ~df["is_reannotation"], "true_label"
         ].apply(
             generate_annotator_label,
-            correctness_probability=annotator_dict[user],
+            correctness_probability=user_correctness[user],
             num_classes=num_classes,
         )
         df.loc[~df["is_reannotation"], f"{user}_confidence"] = 5
@@ -95,14 +93,13 @@ def annotate_samples(
             df["is_reannotation"], "true_label"
         ].apply(
             generate_annotator_label,
-            correctness_probability=annotator_dict[user],
+            correctness_probability=user_correctness[user],
             num_classes=num_classes,
         )
         df.loc[df["is_reannotation"], f"re_{user}_confidence"] = 5
         df.loc[df["is_reannotation"], f"re_{user}_secondary"] = np.nan
-
-        # save csv
-        df.to_csv(f"{data_path}/annotations/{user}.csv", index=False)
+        new_user_df_dict[user] = df
+    return new_user_df_dict
 
 
 def consolidate_reannotation(group: pd.DataFrame) -> pd.Series:
@@ -173,22 +170,8 @@ def user_df_merge(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
     return merged
 
 
-def concat_annotations(annotation_path: str,
-                       annotators: List[str]):
-    """Concatenate annotations based on sample_id.
-
-    Args:
-        annotation_path (str): path to dir containing csv annotations.
-        annotators list(str): list of annotator names.
-
-    Returns:
-        pd.DataFrame: dataframe containing all annotations.
-    """
-    df_list = [
-        pd.read_csv(f"{annotation_path}/{name}.csv") for name in annotators
-    ]
-    annotations = reduce(user_df_merge, df_list)
-    return annotations
+def concat_annotations(annotations_dict: Dict[str, pd.DataFrame]):
+    return reduce(user_df_merge, annotations_dict.values())
 
 
 def generate_data(
