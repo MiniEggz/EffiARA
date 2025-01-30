@@ -283,9 +283,8 @@ class SampleDistributor:
                 annotations_dict[current_annotator].append(second_double_samples)  # noqa
                 annotations_dict[link_2_annotator].append(second_double_samples)  # noqa
 
-        if save_path is None:
+        if len(df) > 0:
             annotations_dict["left_over"] = df
-            return annotations_dict
 
         for user, df_list in annotations_dict.items():
             # concat all user's dataframes
@@ -296,10 +295,12 @@ class SampleDistributor:
                 re_annotation_samples["is_reannotation"] = True
                 user_df = pd.concat([user_df, re_annotation_samples], ignore_index=True)  # noqa
             # save df
-            user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+            if save_path is not None:
+                user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+            annotations_dict[user] = user_df
 
-        # save all left over samples
-        df.to_csv(f"{save_path}/left_over.csv", index=False)
+        return annotations_dict
+
 
     def __str__(self):
         """String representation of sample distribution."""
