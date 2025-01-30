@@ -216,3 +216,13 @@ if __name__ == "__main__":
             annotators=effiannos.annotators[:4],
             other_annotators=effiannos.annotators[3:])
 ```
+
+## Building the Documentation
+
+```
+pip install sphinx sphinx_rtd_theme
+cd docs
+make html
+```
+
+Then open `docs/build/index.html` in your browser.
