@@ -97,7 +97,8 @@ class SampleDistributor:
             re_proportion,
         )
         if annotators is None:
-            self.annotators = [f"user_{i}" for i in range(1, self.num_annotators + 1)]
+            self.annotators = [
+                f"user_{i}" for i in range(1, self.num_annotators + 1)]
         else:
             self.annotators = annotators
 
@@ -205,9 +206,9 @@ class SampleDistributor:
             df (pd.DataFrame): dataframe containing samples with
                 each row being a separate sample - using a copy
                 is recommended.
-            save_path (str): (Optional) If not None, dir path to save all data to.
-                             If not supplied, a dict of allocations is returned.
-                             Default None.
+            save_path (str): (Optional) If not None, dir path to save
+                             all data to. If not supplied, a dict of
+                             allocations is returned. Default None.
             all_reannotation (bool): whether re-annotations should be sampled
                 from all the user's annotations rather than just single
                 annotations. In this case, a double annotation project amount

@@ -31,7 +31,8 @@ class EffiLabelGenerator(LabelGenerator):
             df (pd.DataFrame): input dataframe.
 
         Returns:
-            pd.DataFrame: dataframe containing generated soft labels for each user.
+            pd.DataFrame: dataframe containing generated soft
+                          labels for each user.
         """
         return pd.DataFrame(
             df.apply(
@@ -44,13 +45,15 @@ class EffiLabelGenerator(LabelGenerator):
 
     def add_sample_prob_labels(self, df, reliability_dict):
         """Generate soft labels for each row in an annotated DataFrame.
-           Also generates the sample weightings based on annotator reliability scores.
+
+           Also generates the sample weightings based on annotator
+           reliability scores.
 
         Args:
             df (pd.DataFrame): input dataframe.
 
         Returns:
-            pd.DataFrame: final dataframe with soft labels and sample weightings.
+            pd.DataFrame: final dataframe with soft labels and sample weights.
         """
         return pd.DataFrame(
             pd.DataFrame(
@@ -109,10 +112,12 @@ class EffiLabelGenerator(LabelGenerator):
 
         Args:
             row (pd.Series): single row of the annotation dataframe.
-            reliability_dict (dict): dict containing username: reliability pairs.
+            reliability_dict (dict): dict containing
+                                     username: reliability pairs.
 
         Returns:
-            pd.Series: the updated row containing columns of final_soft_label and sample_weight.
+            pd.Series: the updated row containing columns of
+                       final_soft_label and sample_weight.
         """
         # TODO: convert to list comprehension?
         row_annotators = []
@@ -121,11 +126,12 @@ class EffiLabelGenerator(LabelGenerator):
             # check if user has a soft label column that isn't NaN
             if isinstance(row[f"{user}_soft_label"], np.ndarray):
                 # if so, append prefix to row_annotators list
+                # TOOD: prefix is undefined. What is it?
                 row_annotators.append(prefix)
 
         if len(row_annotators) == 0:
             raise ValueError(
-                f"Row number {row.name} does not have annotations, remove this row from the dataset."
+                f"Row number {row.name} does not have annotations, remove this row from the dataset."  # noqa
             )
         elif len(row_annotators) == 1:
             row["soft_label"] = row[f"{row_annotators[0]}_soft_label"]
@@ -137,9 +143,10 @@ class EffiLabelGenerator(LabelGenerator):
             soft_label_2 = row[f"{row_annotators[1]}_soft_label"]
             reliability_2 = reliability_dict[row_annotators[1]]
             reliability_sum = reliability_1 + reliability_2
-            row["soft_label"] = (reliability_1 / reliability_sum) * soft_label_1 + (
-                reliability_2 / reliability_sum
-            ) * soft_label_2
+            avg_rel_1 = reliability_1 / reliability_sum
+            avg_rel_2 = reliability_2 / reliability_sum
+            row["soft_label"] = avg_rel_1 * soft_label_1 + \
+                avg_rel_2 * soft_label_2
             row["sample_weight"] = reliability_sum / 2
         else:
             raise ValueError("This row has more than 2 annotators.")
@@ -170,11 +177,12 @@ class EffiLabelGenerator(LabelGenerator):
 
         Args:
             row (pd.Series): a single row of the full annotation DataFrame.
-            user_prefix (str): user's prefix in the form username or re_username.
+            user_prefix (str): user's prefix in the form username
+                               or re_username.
 
         Returns:
-            np.ndarray: vector of soft labels, with each dimension representing probability
-                        of the sample fitting the class.
+            np.ndarray: vector of soft labels, with each dimension representing
+                        probability of the sample fitting the class.
         """
 
         soft_label = np.zeros(self.num_classes)
@@ -217,12 +225,11 @@ class EffiLabelGenerator(LabelGenerator):
             # if secondary is higher than primary
             if soft_label[secondary_index] > soft_label[primary_index]:
                 soft_label[secondary_index] = soft_label[primary_index]
-                # case where secondary is bigger than primary, set secondary equal and redistribute rest to other label
+                # case where secondary is bigger than primary,
+                # set secondary equal and redistribute rest to other label
                 for i in range(len(soft_label)):
-                    remaining_probability = (
-                        1 - soft_label[primary_index] - soft_label[secondary_index]
-                    )
+                    remaining_probability = (1 - soft_label[primary_index] - soft_label[secondary_index])  # noqa
                     if i != primary_index and i != secondary_index:
-                        soft_label[i] = remaining_probability / (self.num_classes - 2)
+                        soft_label[i] = remaining_probability / (self.num_classes - 2)  # noqa
 
         return soft_label
