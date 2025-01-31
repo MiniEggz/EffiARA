@@ -38,7 +38,8 @@ class TopicLabelGenerator(LabelGenerator):
         for prefix in all_prefixes:
             row[f"{prefix}_label"] = csv_to_array(row[f"{prefix}_label"])
             if isinstance(row[f"{prefix}_label"], list):
-                row[f"{prefix}_bin_label"] = self.binarize(row[f"{prefix}_label"])
+                row[f"{prefix}_bin_label"] = self.binarize(
+                    row[f"{prefix}_label"])
             else:
                 row[f"{prefix}_bin_label"] = np.nan
 
@@ -60,8 +61,9 @@ class TopicLabelGenerator(LabelGenerator):
                 axis=1,
             )
         )
-    
-    def _add_row_sample_prob_labels(self, row: pd.Series, reliability_dict: dict):
+
+    def _add_row_sample_prob_labels(self, row: pd.Series,
+                                    reliability_dict: dict):
         # TODO: maybe add in something to account for reannotations
         # only account for non-reannotations
         prefixes = [f"user_{i}" for i in range(1, self.num_annotators+1)]
@@ -76,7 +78,8 @@ class TopicLabelGenerator(LabelGenerator):
             if isinstance(row[f"{prefix}_bin_label"], (list, np.ndarray)):
                 num_sample_annotators += 1
                 reliability_sum += reliability_dict[prefix]
-                row["soft_label"] += reliability_dict[prefix] * np.array(row[f"{prefix}_bin_label"]) 
+                bin_label = np.array(row[f"{prefix}_bin_label"])
+                row["soft_label"] += reliability_dict[prefix] * bin_label
 
         # clip soft label (min=0, max=1)
         row["soft_label"] = np.clip(row["soft_label"] / reliability_sum, 0, 1)
