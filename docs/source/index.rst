@@ -22,9 +22,13 @@ and computing reliability user inter- and intra-annotator agreement.
 
    getting_started
    label_generators
-   sample_distributor
-   agreement
 
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API:
+   
+   api
 
 
 Indices and tables

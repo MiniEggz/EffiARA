@@ -166,9 +166,7 @@ class SampleDistributor:
         self._assign_variables(variables)
 
     def set_project_distribution(self):
-        """Set project distributions once all values have been
-        defined.
-        """
+        """Set project distributions once all values have been defined."""
         assert self.num_annotators is not None, "num_annotators must be set"  # noqa
         assert self.num_samples is not None, "num_samples must be set"  # noqa
         assert self.double_proportion is not None, "double_proportion must be set"  # noqa
