@@ -4,11 +4,12 @@ from itertools import combinations
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 from effiara.agreement import pairwise_agreement
 from effiara.utils import retrieve_pair_annotations
-from effiara.label_generator import DefaultLabelGenerator
+from effiara.label_generators import LabelGenerator, DefaultLabelGenerator
 
 
 class Annotations:
@@ -25,17 +26,19 @@ class Annotations:
         merge_labels (dict)
     """
 
-    def __init__(self, df, num_classes,
-                 label_generator=None,
-                 agreement_metric="krippendorff",
-                 merge_labels=None):
+    def __init__(self,
+                 df: pd.DataFrame,
+                 num_classes: int,
+                 label_generator: LabelGenerator = None,
+                 agreement_metric: str = "krippendorff",
+                 merge_labels: dict = None):
         """
         Args:
             df (pd.DataFrame)
             num_classes (int)
-            label_mapping (dict)
+            label_generator (effiara.LabelGenerator)
             agreement_metric (str)
-            merge_labels (dict)
+            merge_labels (Dict[str, List[str]])
         """
         self.df = df.copy()
         self.num_classes = num_classes
@@ -153,7 +156,6 @@ class Annotations:
         inter_annotator_agreement_scores = {}
         pairs = combinations(self.annotators, 2)
         for (current_annotator, link_annotator) in pairs:
-            # TODO: optimise use of pair df rather than generate twice
             pair_df = retrieve_pair_annotations(
                     self.df, current_annotator, link_annotator)
             if len(pair_df) >= threshold:

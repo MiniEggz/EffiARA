@@ -3,7 +3,7 @@
 import numpy as np
 import pandas as pd
 
-from effiara.label_generator import LabelGenerator
+from . import LabelGenerator
 
 
 def convert_confidence(confidence, num_classes=3):

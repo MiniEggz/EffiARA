@@ -6,7 +6,7 @@ from effiara.data_generator import (
     concat_annotations,
     generate_samples,
 )
-from effiara.effi_label_generator import EffiLabelGenerator
+from effiara.label_generators.effi_label_generator import EffiLabelGenerator
 from effiara.preparation import SampleDistributor
 
 

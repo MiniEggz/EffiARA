@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MultiLabelBinarizer
 
-from effiara.label_generator import LabelGenerator
+from . import LabelGenerator
 from effiara.utils import csv_to_array
 
 

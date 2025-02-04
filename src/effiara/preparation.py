@@ -241,7 +241,6 @@ class SampleDistributor:
         # create annotator dict
         annotations_dict = {user: [] for user in self.annotators}
 
-        # TODO: maybe add some handling of save path?
         for (i, current_annotator) in enumerate(self.annotators):
             link_1_idx = (i+1) % self.num_annotators
             link_2_idx = (i+2) % self.num_annotators

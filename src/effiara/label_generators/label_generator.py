@@ -135,8 +135,7 @@ class LabelGenerator(ABC):
 
 
 class DefaultLabelGenerator(LabelGenerator):
-    """The most basic LabelGenerator, with support only
-    for hard labels"""
+    """The most basic LabelGenerator, with support only for hard labels."""
 
     def add_annotation_prob_labels(self, df):
         return df
