@@ -281,6 +281,17 @@ if __name__ == "__main__":
             other_annotators=effiannos.annotators[3:])
 ```
 
+## Building the Documentation
+
+```
+pip install sphinx sphinx_rtd_theme
+cd docs
+make html
+```
+
+Then open `docs/build/index.html` in your browser.
+
+
 ## Contribution
 
 We warmly welcome contributions to improve EffiARA! If you find that this package doesn't fully suit your needs but could with a small change, we encourage you to contribute to the project. Here's how you can help:

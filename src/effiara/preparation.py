@@ -1,8 +1,7 @@
-"""
-Module to handle the preparation for anntotation.
+"""Module to handle the preparation for anntotation.
 This includes:
-    * calculating number of samples to annotate
-    * calculating the distribution of samples
+* calculating number of samples to annotate
+* calculating the distribution of samples
 """
 
 import re
@@ -53,6 +52,17 @@ def get_missing_var(variables: dict) -> Symbol:
 
 
 class SampleDistributor:
+    """Test
+
+    Attributes:
+        annotators (list)
+        num_annotators (int)
+        time_available (float)
+        annotation_rate (float)
+        num_samples (int)
+        double_proportion (float)
+        re_proportion (float)
+    """
 
     def __init__(
         self,
@@ -64,6 +74,16 @@ class SampleDistributor:
         double_proportion: Optional[float] = None,
         re_proportion: Optional[float] = None,
     ):
+        """Test
+        Args:
+            annotators (list)
+            num_annotators (int)
+            time_available (float)
+            annotation_rate (float)
+            num_samples (int)
+            double_proportion (float)
+            re_proportion (float)
+        """
         if annotators is not None:
             if num_annotators != len(annotators):
                 warnings.warn(f"Length of annotators and num_annotators do not match ({len(annotators)} != {num_annotators}). Setting num_annotators to {len(annotators)}")  # noqa
@@ -96,17 +116,16 @@ class SampleDistributor:
         self.double_proportion = variables.get(d)
         self.re_proportion = variables.get(r)
 
-    def get_variables(
-        self,
-        num_annotators: Optional[int] = None,
-        time_available: Optional[float] = None,
-        annotation_rate: Optional[float] = None,
-        num_samples: Optional[int] = None,
-        double_proportion: Optional[float] = None,
-        re_proportion: Optional[float] = None,
-    ):
+    def get_variables(self,
+                      num_annotators: Optional[int] = None,
+                      time_available: Optional[float] = None,
+                      annotation_rate: Optional[float] = None,
+                      num_samples: Optional[int] = None,
+                      double_proportion: Optional[float] = None,
+                      re_proportion: Optional[float] = None):
         """Solves the annotation framework equation to find the missing
-           variable. Only one of the available arguments should be ommitted.
+        variable. Only one of the available arguments should be ommitted.
+
         Args:
             num_annotators (int): number of annotators available [n].
             time_available (float): time available for each annotator
@@ -114,8 +133,8 @@ class SampleDistributor:
             annotation_rate (float): expected rate of annotation per
                 unit time (same unit as time_available) [rho].
             num_samples (int): number of desired samples [k].
-            double_proportion (float): proportion of the whole dataset
-                that should be double-annotated samples (0 <= n <= 1) [d].
+            double_proportion (float): proportion of the whole dataset that
+                should be double-annotated samples (0 <= n <= 1) [d].
             re_proportion (float): proportion of single-annotated samples
                 that should be re-annotated (0 <= n <= 1) [r].
         """
@@ -148,9 +167,7 @@ class SampleDistributor:
         self._assign_variables(variables)
 
     def set_project_distribution(self):
-        """Set project distributions once all values have been
-        defined.
-        """
+        """Set project distributions once all values have been defined."""
         assert self.num_annotators is not None, "num_annotators must be set"  # noqa
         assert self.num_samples is not None, "num_samples must be set"  # noqa
         assert self.double_proportion is not None, "double_proportion must be set"  # noqa
@@ -195,6 +212,9 @@ class SampleDistributor:
                 from all the user's annotations rather than just single
                 annotations. In this case, a double annotation project amount
                 is sampled from all their annotations.
+
+        Returns:
+            dict: Mapping from usernames to assigned samples.
         """
         assert self.num_samples is not None, "num_samples must be set"
         assert self.num_annotators is not None, "num_annotators must be set"
@@ -262,6 +282,9 @@ class SampleDistributor:
                 annotations_dict[current_annotator].append(second_double_samples)  # noqa
                 annotations_dict[link_2_annotator].append(second_double_samples)  # noqa
 
+        if len(df) > 0:
+            annotations_dict["left_over"] = df
+
         for user, df_list in annotations_dict.items():
             # concat all user's dataframes
             user_df = pd.concat(df_list, ignore_index=True)
@@ -271,12 +294,10 @@ class SampleDistributor:
                 re_annotation_samples["is_reannotation"] = True
                 user_df = pd.concat([user_df, re_annotation_samples], ignore_index=True)  # noqa
             # save df
-            user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+            if save_path is not None:
+                user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+            annotations_dict[user] = user_df
 
-        # save all left over samples
-        df.to_csv(f"{save_path}/left_over.csv", index=False)
-
-        annotations_dict["left_over"] = df
         return annotations_dict
 
     def __str__(self):

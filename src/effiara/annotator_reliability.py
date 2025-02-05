@@ -15,6 +15,15 @@ class Annotations:
     framework. Methods include inter- and intra- annotator agreement
     calculations, as well the overall reliability calculation and other
     utilities.
+
+    Attributes:
+        label_generator (effiara.LabelGenerator)
+        annotators (list)
+        num_annotators (int)
+        label_mapping (dict)
+        num_classes (int)
+        agreement_metric (str)
+        merge_labels (dict)
     """
 
     def __init__(
@@ -24,6 +33,12 @@ class Annotations:
         agreement_metric="krippendorff",
         merge_labels=None,
     ):
+        """
+        Args:
+            label_generator (effiara.LabelGenerator)
+            agreement_metric (str)
+            merge_labels (dict): Optional.
+        """
         # set instance variables
         self.label_generator = label_generator
         self.annotators = label_generator.annotators
@@ -215,9 +230,9 @@ class Annotations:
            Alpha and Beta must sum to 1.0.
 
         Args:
-            alpha (float): value between 0 and 1, controlling weight of intra-annotator agreement.  # noqa
-            beta (float): value between 0 and 1, controlling weight of inter-annotator agreement.  # noqa
-            epsilon (float): controls the maximum change from the last iteration to indicate convergence.  # noqa
+            alpha (float): Default 0.5. Value between 0 and 1 controlling weight of intra-annotator agreement.  # noqa
+            beta (float): Default 0.5. Value between 0 and 1, controlling weight of inter-annotator agreement.  # noqa
+            epsilon (float): Default 0.001. Controls the maximum change from the last iteration to indicate convergence.  # noqa
         """
         if alpha + beta != 1:
             raise ValueError("Alpha and Beta must sum to 1.0.")
@@ -346,12 +361,15 @@ class Annotations:
             self,
             annotators: list = None,
             other_annotators: list = None):
-        """
-        Plot a heatmap of agreement metric values for the annotators.
+        """Plot a heatmap of agreement metric values for the annotators.
 
-        annotators, other_annotators: (Optional) If both are specified
-            compare users given in annotators to those in other_annotators.
-            Otherwise, compare all project annotators to each other.
+        If both annotators and other_annotators are specifed, compares
+        users in annotators to those in other_annotators. Otherwise,
+        compare all project annotators to each other. 
+
+        Args:
+            annotators (list): Optional.
+            other_annotators (list): Optional.
         """
         mat = nx.to_numpy_array(self.G, weight="agreement")
         # Put intra-agreements on the diagonal
