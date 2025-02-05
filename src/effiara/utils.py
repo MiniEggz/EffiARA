@@ -31,7 +31,7 @@ def headings_contain_prob_labels(df, heading_1, heading_2, num_classes=3):
     return checks.all(axis=None)
 
 
-def retrieve_pair_annotations(df, user_x, user_y):
+def retrieve_pair_annotations(df, user_x, user_y, suffix="_label"):
     """Get the subset of the dataframe annotated by users
        x and y.
 
@@ -39,13 +39,15 @@ def retrieve_pair_annotations(df, user_x, user_y):
         df (pd.DataFrame): the whole dataset.
         user_x (str): name of the user in the form user_x.
         user_x (str): name of the user in the form user_y.
+        suffix (str): suffix added to usernames, used to
+            find all shared samples.
 
     Returns:
         pd.DataFrame: copy of the reduced subset containing
                       only samples annotated by both users.
     """
-    condition1 = df[f"{user_x}_label"].notna()
-    condition2 = df[f"{user_y}_label"].notna()
+    condition1 = df[f"{user_x}{suffix}"].notna()
+    condition2 = df[f"{user_y}{suffix}"].notna()
     return df[condition1 & condition2].copy()
 
 
