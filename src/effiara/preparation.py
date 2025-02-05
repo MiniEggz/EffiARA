@@ -427,7 +427,8 @@ class SampleRedistributor(SampleDistributor):
             warnings.warn(f"Not all examples were able to be allocated ({len(df)})! Try increasing the number of annotators.")  # noqa
             annotations_dict["left_over"] = df
 
-        for user, user_df in annotations_dict.items():
-            user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+        if save_path is not None:
+            for user, user_df in annotations_dict.items():
+                user_df.to_csv(f"{save_path}/{user}.csv", index=False)
 
         return annotations_dict
