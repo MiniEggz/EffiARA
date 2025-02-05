@@ -1,10 +1,74 @@
-# EffiARA
-Python implementation of the Efficient Annotator Reliability Assessment (EffiARA) annotation framework for distributing samples and assessing annotator reliability using inter- and intra-annotator agreement.
+# EffiARA <br> (Efficient Annotator Reliability Assessment) <br> Annotation Framework
 
-Link to paper introducing EffiARA: [https://doi.org/10.48550/arXiv.2410.14515](https://doi.org/10.48550/arXiv.2410.14515).
+EffiARA is an annotation framework designed to streamline dataset creation and annotation workflows for machine learning and research. By focusing on efficiency, transparency, and performance, EffiARA empowers users to create high-quality datasets with minimal overhead. Key features include:
+
+* 📦 **Efficiently Distribute Samples**
+* 🛠️ **Assemble Datasets**
+* 🤝 **Assess Annotator Agreement**
+* ⚖️ **Annotator-Specific Sample Weighting in Training**
+
+EffiARA aims to give much-needed structure to a range of annotation tasks within research and industry.
+
+In its current state, the annotation framework is suitable for classification tasks, supporting both
+multi-class single-label and multi-class multi-label classification. While it has currently only been
+applied in Natural Language Processing datasets ([https://github.com/MiniEggz/ruc-misinfo](https://github.com/MiniEggz/ruc-misinfo) and [https://zenodo.org/records/14659362](https://zenodo.org/records/14659362)), it is
+applicable in any setting requiring the distribution of samples and/or the aggregation of annotations.
+
+In Cook, et al. 2024 ([https://doi.org/10.48550/arXiv.2410.14515](https://doi.org/10.48550/arXiv.2410.14515))
+we introduced the annotation framework and discuss its applications in assessing annotator reliability
+and how this information can be leveraged to weight samples. Annotator reliabillity is assessed through
+inter- and intra-annotator agreeement.
+
+* Inter-annotator agreement is calculated pairwise, based on a threshold number of annotations shared
+between two annotators.
+* Intra-annotator agreement is calculated pairwise, using the annotators' initial and re-annotations.
+* Further details on agreement calculation can be seen [here](#agreement).
+
+## Table of Contents
+* [Installation](#installation)
+* [Framework Components](#framework-components)
+* [Modules](#modules)
+    * [Agreement](#agreement)
+    * [Label Generator](#label-generator)
+    * [Preparation](#preparation)
+    * [Data Generator](#data-generator)
+    * [Annotator Reliability](#annotator-reliability)
+* [Usage](#usage)
+    * [Sample Distribution](#sample-distribution)
+* [Examples](#examples)
+    * [Full Pipeline](#full-pipeline)
+* [Contribution](#contribution)
+* [License](#license)
 
 
-## Components of the EffiARA annotation framework
+## Installation
+
+### Current Installation (from source)
+
+1. **Clone the Repository**
+```bash
+git clone git@github.com:MiniEggz/EffiARA.git
+cd EffiARA
+```
+
+2. **Install the package**: Make sure pip is installed and run:
+```bash
+pip install .
+```
+
+### Future Installation
+When we reach a more stable release, we will make this package available on PyPi,
+installable using:
+```bash
+pip install effiara
+```
+
+### Virtual Environments
+We recommend installing this tool in a virtual environment, using either
+[venv](https://docs.python.org/3/library/venv.html) or a version of Anaconda, such as [miniconda](https://docs.anaconda.com/miniconda/install/).
+
+
+## Framework Components
 
 The EffiARA annotation framework handles:
 * Sample distribution between a number of annotators
@@ -226,3 +290,56 @@ make html
 ```
 
 Then open `docs/build/index.html` in your browser.
+
+
+## Contribution
+
+We warmly welcome contributions to improve EffiARA! If you find that this package doesn't fully suit your needs but could with a small change, we encourage you to contribute to the project. Here's how you can help:
+
+- **General Solutions**: Please try to make your contributions as general as possible, so they can benefit a wide range of tasks and users.
+- **Specific Solutions**: Even if your solution addresses a very specific need, don’t hesitate to put in a Pull Request (PR). Others may benefit from it too! When submitting, be sure to include a clear description of the purpose and context of your changes.
+
+### Contribution Guidelines
+- All contributions are welcome but must pass the CI/CD pipeline.
+- Each PR will require at least one approval before being merged.
+- Please ensure your code is well-documented and follows the project’s coding style.
+
+### Need Help?
+If you’d like to discuss a potential contribution or have any questions, feel free to contact me directly at **oscook1@sheffield.ac.uk**. I'm happy to help!
+
+We would be hugely greatful for any contribution you are able to provide!
+
+
+## License
+
+This project is licensed under the **MIT License**.
+
+You are free to:
+* Use the code for **any purpose**, including commercial use.
+* Modify and distribute the code as long as you include the original license.
+
+A copy of the license is included in this repository. You can also view the full license text [here](https://opensource.org/licenses/MIT).
+
+---
+
+```
+MIT License
+
+Copyright (c) 2025 Owen Cook, Jake Vasilakes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies
+or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
