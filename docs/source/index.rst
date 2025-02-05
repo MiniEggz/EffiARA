@@ -7,7 +7,7 @@ EffiARA
 ===================================
 
 EffiARA (Efficient Annotator Reliability Assessment) is a framework for distributing examples to annotators
-and computing reliability user inter- and intra-annotator agreement.
+and computing reliability using inter- and intra-annotator agreement.
 
  * Check out the code on `Github`_
  * Read the `paper`_ introducing EffiARA 
