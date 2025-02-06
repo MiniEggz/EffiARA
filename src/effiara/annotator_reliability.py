@@ -89,10 +89,8 @@ class Annotations:
                         label, replacement
                     )
 
-    # TODO: is this necessary? It's not called anywhere.
     def generate_final_labels_and_sample_weights(self):
         """Generate the final labels and sample weights for the dataframe."""
-        raise NotImplementedError()
         self.df = self.label_generator.add_sample_prob_labels(
             self.df, self.get_reliability_dict()
         )
