@@ -1,5 +1,3 @@
-import re
-
 import numpy as np
 
 
@@ -46,7 +44,9 @@ def retrieve_pair_annotations(df, user_x, user_y):
         pd.DataFrame: copy of the reduced subset containing
                       only samples annotated by both users.
     """
-    return df[df[f"{user_x}_label"].notna() & df[f"{user_y}_label"].notna()].copy()
+    condition1 = df[f"{user_x}_label"].notna()
+    condition2 = df[f"{user_y}_label"].notna()
+    return df[condition1 & condition2].copy()
 
 
 def csv_to_array(csv_string):

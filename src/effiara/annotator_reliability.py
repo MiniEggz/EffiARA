@@ -1,13 +1,15 @@
 import warnings
-from itertools import combinations, product
+from itertools import combinations
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 from effiara.agreement import pairwise_agreement
 from effiara.utils import retrieve_pair_annotations
+from effiara.label_generators import LabelGenerator, DefaultLabelGenerator
 
 
 class Annotations:
@@ -17,50 +19,44 @@ class Annotations:
     utilities.
 
     Attributes:
-        label_generator (effiara.LabelGenerator)
-        annotators (list)
-        num_annotators (int)
-        label_mapping (dict)
+        df (pd.DataFrame)
         num_classes (int)
+        label_mapping (dict)
         agreement_metric (str)
         merge_labels (dict)
     """
 
-    def __init__(
-        self,
-        df,
-        label_generator,
-        agreement_metric="krippendorff",
-        merge_labels=None,
-    ):
+    def __init__(self,
+                 df: pd.DataFrame,
+                 num_classes: int,
+                 label_generator: LabelGenerator = None,
+                 agreement_metric: str = "krippendorff",
+                 merge_labels: dict = None):
         """
         Args:
+            df (pd.DataFrame)
+            num_classes (int)
             label_generator (effiara.LabelGenerator)
             agreement_metric (str)
-            merge_labels (dict): Optional.
+            merge_labels (Dict[str, List[str]])
         """
-        # set instance variables
-        self.label_generator = label_generator
-        self.annotators = label_generator.annotators
-        self.num_annotators = label_generator.num_annotators
-        self.label_mapping = label_generator.label_mapping
-        self.num_classes = label_generator.num_classes
+        self.df = df.copy()
+        self.num_classes = num_classes
         self.agreement_metric = agreement_metric
         self.merge_labels = merge_labels
 
-        # set in self.calculate_inter_annotator_agreement
-        self.overall_inter_annotator_agreement = np.nan
+        # Populates self.annotators
+        # by looking at the *_label columns in self.df
+        self.label_generator = label_generator
+        if label_generator is None:
+            self.label_generator = DefaultLabelGenerator.from_annotations(
+                self.df, num_classes)
+        self.annotators = self.label_generator.annotators
+        self.num_classes = self.label_generator.num_classes
+        self.label_mapping = self.label_generator.label_mapping
 
-        # load dataset
-        self.df = df.copy()
-
-        # merge labels
         self.replace_labels()
-
-        # generate user soft labels
-        self.df = self.label_generator.add_annotation_prob_labels(self.df)
-
-        # calculate agreements
+        self.overall_inter_annotator_agreement = np.nan
         self.G = self.init_annotator_graph()
         self.calculate_intra_annotator_agreement()
         self.calculate_inter_annotator_agreement()
@@ -70,7 +66,7 @@ class Annotations:
         """Merge labels. Uses find and replace so do not switch labels e.g.
         {"misinfo": ["debunk"], "debunk": ["misinfo", "other"]}.
         """
-        if not self.merge_labels:
+        if self.merge_labels is None:
             return
 
         for replacement, to_replace in self.merge_labels.items():
@@ -158,7 +154,6 @@ class Annotations:
         inter_annotator_agreement_scores = {}
         pairs = combinations(self.annotators, 2)
         for (current_annotator, link_annotator) in pairs:
-            # TODO: optimise use of pair df rather than generate twice
             pair_df = retrieve_pair_annotations(
                     self.df, current_annotator, link_annotator)
             if len(pair_df) >= threshold:
@@ -365,7 +360,7 @@ class Annotations:
 
         If both annotators and other_annotators are specifed, compares
         users in annotators to those in other_annotators. Otherwise,
-        compare all project annotators to each other. 
+        compare all project annotators to each other.
 
         Args:
             annotators (list): Optional.
@@ -387,7 +382,6 @@ class Annotations:
             mat = mat[matrows][:, matcols]
             agreements = [(name, agree) for (name, agree) in agreements
                           if name in annotators]
-
 
         sorted_by_agreement = sorted(enumerate(agreements),
                                      key=lambda n: n[1][1], reverse=True)

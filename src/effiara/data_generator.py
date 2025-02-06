@@ -1,14 +1,11 @@
 """Functions for generating datasets and annotations."""
 
-import os
 from functools import reduce
-from typing import List, Dict
+from typing import Dict
 
 import numpy as np
 import pandas as pd
 
-from effiara.annotator_reliability import Annotations
-from effiara.effi_label_generator import EffiLabelGenerator
 from effiara.preparation import SampleDistributor
 
 
@@ -57,15 +54,15 @@ def generate_samples(num_samples: int,
     return dataset
 
 
-def annotate_samples(
-    user_df_dict: Dict[str, pd.DataFrame],
-    user_correctness: Dict[str, float],
-    num_classes: int) -> Dict[str, pd.DataFrame]:
+def annotate_samples(user_df_dict: Dict[str, pd.DataFrame],
+                     user_correctness: Dict[str, float],
+                     num_classes: int) -> Dict[str, pd.DataFrame]:
     """Generate annotations according to annotator correctness.
 
     Args:
-        user_df_dict (Dict[str, pd.DataFrame]): dict from usernames to examples.
-        user_correctness (Dict[str, pd.DataFrame]): dict from usernames to correctness.
+        user_df_dict (Dict[str, pd.DataFrame]): dict of usernames: examples.
+        user_correctness (Dict[str, pd.DataFrame]): dict from
+                                                    usernames to correctness.
         num_classes (int): number of classes.
 
     Returns:
@@ -141,14 +138,15 @@ def user_df_merge(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
         left = left.drop(columns=["is_reannotation"])
     if "is_reannotation" in right.columns:
         right = right.drop(columns=["is_reannotation"])
-    merged = left.merge(right, on="sample_id", how="outer", suffixes=("", "_dup"))
+    merged = left.merge(right, on="sample_id", how="outer",
+                        suffixes=("", "_dup"))
 
     # loop over duplicate columns
     for col in merged.columns:
         if col.endswith("_dup"):
             original_col = col.replace("_dup", "")
             if original_col in merged.columns:
-                merged[original_col] = merged[original_col].combine_first(merged[col])
+                merged[original_col] = merged[original_col].combine_first(merged[col])  # noqa
 
                 # check for consistency
                 inconsistent = (
@@ -174,9 +172,8 @@ def concat_annotations(annotations_dict: Dict[str, pd.DataFrame]):
     return reduce(user_df_merge, annotations_dict.values())
 
 
-def generate_data(
-    sample_distributor: SampleDistributor, annotator_dict: dict, num_classes: int
-) -> pd.DataFrame:
+def generate_data(sample_distributor: SampleDistributor,
+                  annotator_dict: dict, num_classes: int) -> pd.DataFrame:
     """Generate a set of anntotations to be tested in annotator
        reliability assessment. Allows control over how good each
        annotator should be, allowing the assessment of the annotation
@@ -195,7 +192,7 @@ def generate_data(
     dataset = pd.DataFrame()
     num_annotators = len(annotator_dict)
     annotators = list(annotator_dict.keys())
-    for (i, current_annotator) in enumerate(anntotators):
+    for (i, current_annotator) in enumerate(annotators):
         link_1_annotator = annotators[(i+1) % num_annotators]
         link_2_annotator = annotators[(i+2) % num_annotators]
 
