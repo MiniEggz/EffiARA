@@ -54,7 +54,11 @@ class LabelGenerator(ABC):
             user_re_match = user_re.match(lc)
             if user_re_match is None:
                 raise ValueError(f"Improperly formatted label column '{lc}'")
-            annotators.append(user_re_match.group(2))
+            # Using an `if` rather than set() keeps the
+            # annotators in the same order as the columns.
+            username = user_re_match.group(2)
+            if username not in annotators:
+                annotators.append(username)
 
         # Create a default label mapping
         labels = df[label_cols].values.flatten()
