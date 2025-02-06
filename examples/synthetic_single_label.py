@@ -1,4 +1,3 @@
-import os
 import argparse
 
 from effiara.annotator_reliability import Annotations
@@ -7,12 +6,12 @@ from effiara.data_generator import (
     concat_annotations,
     generate_samples,
 )
-from effiara.effi_label_generator import EffiLabelGenerator
+from effiara.label_generators.effi_label_generator import EffiLabelGenerator
 from effiara.preparation import SampleDistributor
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--usernames",action="store_true", default=False)
+parser.add_argument("--usernames", action="store_true", default=False)
 args = parser.parse_args()
 
 num_classes = 3
@@ -46,8 +45,9 @@ annotations = concat_annotations(annotated)
 print(annotations)
 
 label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
-label_generator = EffiLabelGenerator(sample_distributor.annotators, label_mapping)
-effiannos = Annotations(annotations, label_generator)
+label_generator = EffiLabelGenerator(
+    sample_distributor.annotators, label_mapping)
+effiannos = Annotations(annotations, len(label_mapping), label_generator)
 print(effiannos.get_reliability_dict())
 effiannos.display_annotator_graph()
 # Equivalent to the graph, but as a heatmap

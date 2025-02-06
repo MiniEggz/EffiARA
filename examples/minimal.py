@@ -1,6 +1,6 @@
 from effiara.preparation import SampleDistributor
 from effiara.annotator_reliability import Annotations
-from effiara.effi_label_generator import EffiLabelGenerator
+from effiara.label_generators import DefaultLabelGenerator  # noqa
 
 from effiara.data_generator import (generate_samples,
                                     annotate_samples,
@@ -42,10 +42,13 @@ annotations = concat_annotations(annotated)
 print(annotations)
 
 # Compute reliability metrics.
-label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
-label_generator = EffiLabelGenerator(
-    sample_distributor.annotators, label_mapping)
-effiannos = Annotations(annotations, label_generator)
+effiannos = Annotations(annotations, num_classes)
+# You can also define a label_generator manually like so,
+# if you need more advanced functionality.
+#label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
+#label_generator = DefaultLabelGenerator(annotators, label_mapping)
+#effiannos = Annotations(annotations, num_classes,
+#                         label_generator=label_generator)
 print(effiannos.get_reliability_dict())
 
 # Edges are inter-annotator reliability

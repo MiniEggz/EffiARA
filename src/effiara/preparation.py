@@ -97,7 +97,8 @@ class SampleDistributor:
             re_proportion,
         )
         if annotators is None:
-            self.annotators = [f"user_{i}" for i in range(1, self.num_annotators + 1)]
+            self.annotators = [
+                f"user_{i}" for i in range(1, self.num_annotators + 1)]
         else:
             self.annotators = annotators
 
@@ -205,9 +206,9 @@ class SampleDistributor:
             df (pd.DataFrame): dataframe containing samples with
                 each row being a separate sample - using a copy
                 is recommended.
-            save_path (str): (Optional) If not None, dir path to save all data to.
-                             If not supplied, a dict of allocations is returned.
-                             Default None.
+            save_path (str): (Optional) If not None, dir path to save
+                             all data to. If not supplied, a dict of
+                             allocations is returned. Default None.
             all_reannotation (bool): whether re-annotations should be sampled
                 from all the user's annotations rather than just single
                 annotations. In this case, a double annotation project amount
@@ -240,7 +241,6 @@ class SampleDistributor:
         # create annotator dict
         annotations_dict = {user: [] for user in self.annotators}
 
-        # TODO: maybe add some handling of save path?
         for (i, current_annotator) in enumerate(self.annotators):
             link_1_idx = (i+1) % self.num_annotators
             link_2_idx = (i+2) % self.num_annotators
@@ -427,7 +427,8 @@ class SampleRedistributor(SampleDistributor):
             warnings.warn(f"Not all examples were able to be allocated ({len(df)})! Try increasing the number of annotators.")  # noqa
             annotations_dict["left_over"] = df
 
-        for user, user_df in annotations_dict.items():
-            user_df.to_csv(f"{save_path}/{user}.csv", index=False)
+        if save_path is not None:
+            for user, user_df in annotations_dict.items():
+                user_df.to_csv(f"{save_path}/{user}.csv", index=False)
 
         return annotations_dict
