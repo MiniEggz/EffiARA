@@ -1,5 +1,6 @@
 import re
 from abc import ABC, abstractmethod
+from typing import Optional, List
 
 import numpy as np
 import pandas as pd
@@ -31,6 +32,7 @@ class LabelGenerator(ABC):
             def add_sample_hard_labels(self, df):
                 ...
     """
+
     @classmethod
     def from_annotations(cls, df: pd.DataFrame, num_classes=None):
         """Initialize from an annotations dataframe
@@ -40,10 +42,11 @@ class LabelGenerator(ABC):
             num_classes (int): if not None, infer from df.
         """
         # Check for columns with hard labels.
-        label_cols = [c for c in df.columns
-                      if c != "true_label"
-                      and c.endswith("_label")
-                      and not c.startswith("re_")]
+        label_cols = [
+            c
+            for c in df.columns
+            if c != "true_label" and c.endswith("_label") and not c.startswith("re_")
+        ]
         if len(label_cols) == 0:
             raise ValueError("No *_label columns found in annotations!")
 
@@ -66,7 +69,9 @@ class LabelGenerator(ABC):
 
         num_classes = num_classes or len(labels_set)
         if num_classes < len(labels_set):
-            raise ValueError(f"num_classes ({num_classes}) less than the number of classes found in annotations ({len(labels_set)})!")  # noqa
+            raise ValueError(
+                f"num_classes ({num_classes}) less than the number of classes found in annotations ({len(labels_set)})!"
+            )  # noqa
         # We can't guarantee that all the labels
         # are given in the annotations, so if there's a
         # discrepancy add some placeholder labels.
@@ -78,13 +83,18 @@ class LabelGenerator(ABC):
         label_mapping = dict(zip(labels_set, range(num_classes)))
         return cls(annotators, label_mapping)
 
-    def __init__(self,
-                 annotators: list,
-                 label_mapping: dict):
+    def __init__(
+        self,
+        annotators: list,
+        label_mapping: dict,
+        label_suffixes: Optional[List[str]] = None,
+    ):
         self.annotators = annotators
         self.num_annotators = len(self.annotators)
         self.label_mapping = label_mapping
         self.num_classes = len(label_mapping)
+        if label_suffixes is None:
+            self.label_suffixes = ["_label"]
 
     @abstractmethod
     def add_annotation_prob_labels(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -144,7 +154,7 @@ class DefaultLabelGenerator(LabelGenerator):
     def add_annotation_prob_labels(self, df):
         return df
 
-    def add_sample_prob_labels(df, reliability_dict):
+    def add_sample_prob_labels(self, df, reliability_dict):
         return df
 
     def add_sample_hard_labels(self, df):

@@ -1,11 +1,11 @@
-from effiara.preparation import SampleDistributor
 from effiara.annotator_reliability import Annotations
+from effiara.data_generator import (
+    annotate_samples,
+    concat_annotations,
+    generate_samples,
+)
 from effiara.label_generators import DefaultLabelGenerator  # noqa
-
-from effiara.data_generator import (generate_samples,
-                                    annotate_samples,
-                                    concat_annotations)
-
+from effiara.preparation import SampleDistributor
 
 # Generate some random data to annotate.
 num_classes = 3
@@ -27,27 +27,27 @@ sample_distributor = SampleDistributor(
     # This is unknown. SampleDistributor will solve for it.
     annotation_rate=None,
     num_samples=num_samples,
-    double_proportion=1/3,
-    re_proportion=1/2,
+    double_proportion=1 / 3,
+    re_proportion=1 / 2,
 )
 sample_distributor.set_project_distribution()
 print(sample_distributor)
 # Distribute the samples to the annotators.
-allocations = sample_distributor.distribute_samples(
-   df.copy(), all_reannotation=True)
+allocations = sample_distributor.distribute_samples(df.copy())
 
 # Generate annotations according to allocations and annotator correctness.
 annotated = annotate_samples(allocations, annotator_dict, num_classes)
 annotations = concat_annotations(annotated)
 print(annotations)
 
+
 # Compute reliability metrics.
-effiannos = Annotations(annotations, num_classes)
+effiannos = Annotations(annotations, reannotations=True)
 # You can also define a label_generator manually like so,
 # if you need more advanced functionality.
-#label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
-#label_generator = DefaultLabelGenerator(annotators, label_mapping)
-#effiannos = Annotations(annotations, num_classes,
+# label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
+# label_generator = DefaultLabelGenerator(annotators, label_mapping)
+# effiannos = Annotations(annotations, num_classes,
 #                         label_generator=label_generator)
 print(effiannos.get_reliability_dict())
 

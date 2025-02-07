@@ -5,8 +5,7 @@ import numpy as np
 from sklearn.metrics import cohen_kappa_score
 from statsmodels.stats.inter_rater import aggregate_raters, fleiss_kappa
 
-from effiara.utils import (headings_contain_prob_labels,
-                           retrieve_pair_annotations)
+from effiara.utils import headings_contain_prob_labels, retrieve_pair_annotations
 
 
 def pairwise_nominal_krippendorff_agreement(
@@ -45,12 +44,11 @@ def pairwise_nominal_krippendorff_agreement(
         pair_df[[heading_1 + "_numeric", heading_2 + "_numeric"]].to_numpy().T
     )
     return krippendorff.alpha(
-        reliability_data=krippendorff_format_data,
-        level_of_measurement="nominal")
+        reliability_data=krippendorff_format_data, level_of_measurement="nominal"
+    )
 
 
-def pairwise_cohens_kappa_agreement(pair_df, heading_1,
-                                    heading_2, label_mapping):
+def pairwise_cohens_kappa_agreement(pair_df, heading_1, heading_2, label_mapping):
     """Cohen's kappa agreement metric between two annotators, given two
        headings for each annotator column containing their primary label
        for each sample.
@@ -80,8 +78,7 @@ def pairwise_cohens_kappa_agreement(pair_df, heading_1,
     return cohen_kappa_score(user_x, user_y)
 
 
-def pairwise_fleiss_kappa_agreement(pair_df, heading_1,
-                                    heading_2, label_mapping):
+def pairwise_fleiss_kappa_agreement(pair_df, heading_1, heading_2, label_mapping):
     """Fleiss kappa agreement metric between two annotators, given two
        headings for each annotator column containing their primary label
        for each sample.
@@ -146,8 +143,7 @@ def pairwise_cosine_similarity(pair_df, heading_1, heading_2, num_classes=3):
             "One or both of the columns given contain NaN values; the column names may be incorrect or there is an issue with the data."  # noqa
         )
 
-    if not headings_contain_prob_labels(pair_df, heading_1,
-                                        heading_2, num_classes):
+    if not headings_contain_prob_labels(pair_df, heading_1, heading_2, num_classes):
         raise Exception("No probabilistic labels found in dataframe.")
 
     cosine_similarities = pair_df.apply(
@@ -156,8 +152,9 @@ def pairwise_cosine_similarity(pair_df, heading_1, heading_2, num_classes=3):
     return np.sum(cosine_similarities) / len(cosine_similarities)
 
 
-def calculate_krippendorff_alpha_per_label(pair_df, annotator_1_col,
-                                           annotator_2_col):
+def calculate_krippendorff_alpha_per_label(
+    pair_df, annotator_1_col, annotator_2_col, agreement_type="nominal"
+):
     """Calculate Krippendorff's alpha for each label and return the average.
 
        Requires the data in the given columns to be a binarised array of
@@ -168,28 +165,32 @@ def calculate_krippendorff_alpha_per_label(pair_df, annotator_1_col,
             for the first annotator.
         annotator_2_col (str): column containing the binarised annotations
             for the second annotator.
+        agreement_type (str): type of agreement:
+            - nominal
+            - ordinal
+            - interval
+            - ratio
 
     Returns:
         float: average Krippendorff's alpha across labels.
     """
-    binarized_annotations_1 = np.vstack(pair_df[annotator_1_col].to_numpy())
-    binarized_annotations_2 = np.vstack(pair_df[annotator_2_col].to_numpy())
+    # TODO: check that the column is in the correct format
+    annotations_1 = np.vstack(pair_df[annotator_1_col].to_numpy())
+    annotations_2 = np.vstack(pair_df[annotator_2_col].to_numpy())
     assert (
-        binarized_annotations_1.shape == binarized_annotations_2.shape
+        annotations_1.shape == annotations_2.shape
     ), "Annotation matrices must have the same shape"
 
     alpha_values = []
     # calculate alpha for each label
-    for i in range(binarized_annotations_1.shape[1]):
+    for i in range(annotations_1.shape[1]):
         # stack the annotations of both annotators
-        label_annotations = np.vstack(
-            [binarized_annotations_1.T[i], binarized_annotations_2.T[i]]
-        )
+        label_annotations = np.vstack([annotations_1.T[i], annotations_2.T[i]])
 
         if len(np.unique(label_annotations)) > 1:
             alpha = krippendorff.alpha(
-                reliability_data=label_annotations,
-                level_of_measurement="nominal")
+                reliability_data=label_annotations, level_of_measurement=agreement_type
+            )
             alpha_values.append(alpha)
         else:
             alpha_values.append(np.nan)
@@ -201,7 +202,14 @@ def calculate_krippendorff_alpha_per_label(pair_df, annotator_1_col,
 
 
 def pairwise_agreement(
-    df, user_x, user_y, label_mapping, num_classes, metric="krippendorff"
+    df,
+    user_x,
+    user_y,
+    label_mapping,
+    num_classes,
+    metric="krippendorff",
+    agreement_type="nominal",
+    label_suffix="_label",
 ):
     """Get the pairwise annotator agreement given the full dataframe.
 
@@ -220,6 +228,14 @@ def pairwise_agreement(
             - multi_krippendorff: krippendorff similarity by label for
                                   multilabel classification.
             - cosine: the cosine similarity metric to be used on soft labels.
+        agreement_type (str):
+            type of agreement:
+                - nominal
+                - ordinal
+                - interval
+                - ratio
+            NOTE: currently only working for multi_krippendorff.
+        label_suffix (str): suffix for the label being compared.
 
     Returns:
         float: agreement between user_x and user_y.
@@ -227,28 +243,29 @@ def pairwise_agreement(
     pair_df = retrieve_pair_annotations(df, user_x, user_y)
     if metric == "krippendorff":
         return pairwise_nominal_krippendorff_agreement(
-            pair_df, user_x + "_label", user_y + "_label", label_mapping
+            pair_df, user_x + label_suffix, user_y + label_suffix, label_mapping
         )
     elif metric == "cohen":
         return pairwise_cohens_kappa_agreement(
-            pair_df, user_x + "_label", user_y + "_label", label_mapping
+            pair_df, user_x + label_suffix, user_y + label_suffix, label_mapping
         )
     elif metric == "fleiss":
         return pairwise_fleiss_kappa_agreement(
-            pair_df, user_x + "_label", user_y + "_label", label_mapping
+            pair_df, user_x + label_suffix, user_y + label_suffix, label_mapping
         )
     elif metric == "cosine":
         return pairwise_cosine_similarity(
             pair_df,
-            user_x + "_soft_label",
-            user_y + "_soft_label",
+            user_x + label_suffix,
+            user_y + label_suffix,
             num_classes=num_classes,
         )
     elif metric == "multi_krippendorff":
         return calculate_krippendorff_alpha_per_label(
             pair_df,
-            user_x + "_bin_label",
-            user_y + "_bin_label",
+            user_x + label_suffix,
+            user_y + label_suffix,
+            agreement_type=agreement_type,
         )
     else:
         raise ValueError(f"The metric {metric} was not recognised.")

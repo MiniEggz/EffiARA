@@ -1,5 +1,6 @@
 import warnings
-from itertools import combinations
+from itertools import combinations, product
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -8,8 +9,8 @@ import pandas as pd
 import seaborn as sns
 
 from effiara.agreement import pairwise_agreement
-from effiara.utils import retrieve_pair_annotations
 from effiara.label_generators import LabelGenerator, DefaultLabelGenerator
+from effiara.utils import retrieve_pair_annotations
 
 
 class Annotations:
@@ -19,76 +20,111 @@ class Annotations:
     utilities.
 
     Attributes:
-        df (pd.DataFrame)
-        num_classes (int)
-        label_mapping (dict)
-        agreement_metric (str)
-        merge_labels (dict)
+        label_generator (effiara.LabelGenerator): label generator to create
+            individual annotation labels and soft/hard aggregations.
+        annotators (list): list of annotator names.
+        num_annotators (int): number of annotators
+        label_mapping (dict): label mapping of what is in the dataframe to what
+            should be used for agreement/training.
+        num_classes (int): number of classes.
+        agreement_metric (str): agreement metric to be used.
+        agreement_suffix (str): label suffix to get the agreement from (such as
+            "_label" as the default).
+        agreement_type (str): type of agreement (e.g. nominal, ordinal).
+        merge_labels (dict): dict of labels to merge.
     """
 
-    def __init__(self,
-                 df: pd.DataFrame,
-                 num_classes: int,
-                 label_generator: LabelGenerator = None,
-                 agreement_metric: str = "krippendorff",
-                 merge_labels: dict = None):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        label_generator: Optional[LabelGenerator] = None,
+        agreement_metric: str = "krippendorff",
+        agreement_suffix: str = "_label",
+        agreement_type: str = "nominal",
+        overlap_threshold: int = 15,
+        merge_labels: Optional[dict] = None,
+        reliability_alpha: float = 0.5,
+        reannotations=False,
+    ):
         """
         Args:
-            df (pd.DataFrame)
-            num_classes (int)
+            df
             label_generator (effiara.LabelGenerator)
+            annotation_col_suffixes (List[str])
             agreement_metric (str)
-            merge_labels (Dict[str, List[str]])
+            agreement_suffix (str)
+            agreement_type (str)
+            overlap_threshold (str)
+            merge_labels (dict): Optional.
+            reliability_alpha (float): control strength of intra-annotator
+                agreement in reliability calculations.
         """
+        # set instance variables
         self.df = df.copy()
-        self.num_classes = num_classes
+
+        # ensure label generator set
+        if label_generator is None:
+            label_generator = DefaultLabelGenerator.from_annotations(self.df)
+
+        self.label_generator = label_generator
+        self.annotators = label_generator.annotators
+        self.num_annotators = label_generator.num_annotators
+        self.label_mapping = label_generator.label_mapping
+        self.num_classes = label_generator.num_classes
+        self.annotation_col_suffixes = self.label_generator.label_suffixes
+
         self.agreement_metric = agreement_metric
+        self.agreement_suffix = agreement_suffix
+        self.agreement_type = agreement_type
+
+        self.overlap_threshold = overlap_threshold
+
         self.merge_labels = merge_labels
 
-        # Populates self.annotators
-        # by looking at the *_label columns in self.df
-        self.label_generator = label_generator
-        if label_generator is None:
-            self.label_generator = DefaultLabelGenerator.from_annotations(
-                self.df, num_classes)
-        self.annotators = self.label_generator.annotators
-        self.num_classes = self.label_generator.num_classes
-        self.label_mapping = self.label_generator.label_mapping
+        self.reliability_alpha = reliability_alpha
 
-        self.replace_labels()
+        # TODO: add some check for reannotations
+        self.reannotations = reannotations  # TODO: replace w/ function to look for re_
+
+        # set in self.calculate_inter_annotator_agreement
         self.overall_inter_annotator_agreement = np.nan
+
+        # merge labels
+        self.replace_labels()
+
+        # generate annotation labels
+        self.df = self.label_generator.add_annotation_prob_labels(self.df)
+
+        # calculate agreements
         self.G = self.init_annotator_graph()
         self.calculate_intra_annotator_agreement()
         self.calculate_inter_annotator_agreement()
-        self.calculate_annotator_reliability()
+        self.calculate_annotator_reliability(alpha=self.reliability_alpha)
 
     def replace_labels(self):
         """Merge labels. Uses find and replace so do not switch labels e.g.
         {"misinfo": ["debunk"], "debunk": ["misinfo", "other"]}.
         """
-        if self.merge_labels is None:
+        if not self.merge_labels:
             return
 
+        # TODO: refactor to remove as many loops
         for replacement, to_replace in self.merge_labels.items():
             for label in to_replace:
                 for user in self.annotators:
-                    label_col = f"{user}_label"
-                    re_label_col = "re_" + label_col
-                    secondary_col = f"{user}_secondary"
-                    re_secondary_col = "re_" + secondary_col
+                    for suffix in self.annotation_col_suffixes:
+                        label_col = f"{user}{suffix}"
+                        self.df[label_col] = self.df[label_col].replace(
+                            label, replacement
+                        )  # noqa
 
-                    # find and replace in each col
-                    self.df[label_col] = self.df[label_col].replace(label, replacement)  # noqa
-                    self.df[secondary_col] = self.df[secondary_col].replace(
-                        label, replacement
-                    )
-                    self.df[re_label_col] = self.df[re_label_col].replace(
-                        label, replacement
-                    )
-                    self.df[re_secondary_col] = self.df[re_secondary_col].replace(  # noqa
-                        label, replacement
-                    )
+                        if self.reannotations:
+                            re_label_col = "re_" + label_col
+                            self.df[re_label_col] = self.df[re_label_col].replace(
+                                label, replacement
+                            )
 
+    # TODO: rename the label generator names
     def generate_final_labels_and_sample_weights(self):
         """Generate the final labels and sample weights for the dataframe."""
         self.df = self.label_generator.add_sample_prob_labels(
@@ -118,7 +154,8 @@ class Annotations:
         avg = total / num_edges
         if avg < 0:
             raise ValueError(
-                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa.")  # noqa
+                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa."
+            )  # noqa
 
         for _, _, edge in self.G.edges(data=True):
             edge[property] /= avg
@@ -135,68 +172,75 @@ class Annotations:
         avg = total / num_nodes
         if avg < 0:
             raise ValueError(
-                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa.")  # noqa
+                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa."
+            )  # noqa
 
         for node in self.G.nodes():
             self.G.nodes[node][property] /= avg
 
-    def calculate_inter_annotator_agreement(self, threshold=30):
+    def calculate_inter_annotator_agreement(self):
         """Calculate the inter-annotator agreement between each
         pair of annotators. Each agreement value will be
         represented on the edges of the graph between nodes
         that are representative of each annotator.
-
-        Args:
-            threshold (int): threshold number of samples required
-                for a link to be made between two annotators.
-
         """
         inter_annotator_agreement_scores = {}
         pairs = combinations(self.annotators, 2)
-        for (current_annotator, link_annotator) in pairs:
+        for current_annotator, link_annotator in pairs:
             pair_df = retrieve_pair_annotations(
-                    self.df, current_annotator, link_annotator)
-            if len(pair_df) >= threshold:
+                self.df, current_annotator, link_annotator
+            )
+            if len(pair_df) >= self.overlap_threshold:
                 pair = (current_annotator, link_annotator)
-                inter_annotator_agreement_scores[pair] = (
-                    pairwise_agreement(
-                        self.df,
-                        current_annotator,
-                        link_annotator,
-                        self.label_mapping,
-                        num_classes=self.num_classes,
-                        metric=self.agreement_metric,
-                    )
+                inter_annotator_agreement_scores[pair] = pairwise_agreement(
+                    self.df,
+                    current_annotator,
+                    link_annotator,
+                    self.label_mapping,
+                    num_classes=self.num_classes,
+                    metric=self.agreement_metric,
+                    agreement_type=self.agreement_type,
                 )
 
         # add all agreement scores to the graph
         for users, score in inter_annotator_agreement_scores.items():
             self.G.add_edge(users[0], users[1], agreement=score)
 
+        # TODO: maybe add alternative way of anntotator agreement?
+        # i.e. Krippendorff for all annotations if individual annotator
+        # doesn't matter
         self.overall_inter_annotator_agreement = np.mean(
             list(inter_annotator_agreement_scores.values())
         )
 
+    # MINOR CHANGE -- add self.reannotations filter
+    # TODO: maybe allow to change default value (np.nan for example)
     def calculate_intra_annotator_agreement(self):
         """Calculate intra-annotator agreement."""
-        for user in self.annotators:
-            re_user = f"re_{user}"
-            try:
-                self.G.nodes[user]["intra_agreement"] = pairwise_agreement(  # noqa
-                    self.df,
-                    user,
-                    re_user,
-                    self.label_mapping,
-                    num_classes=self.num_classes,
-                    metric=self.agreement_metric,
-                )
-            except KeyError:
-                warnings.warn(
-                    "Key error for calculating intra-annotator agreement. Setting all intra-annotator agreement values to 1.")  # noqa
+        if self.reannotations:
+            for user in self.annotators:
+                re_user = f"re_{user}"
+                try:
+                    self.G.nodes[user]["intra_agreement"] = pairwise_agreement(  # noqa
+                        self.df,
+                        user,
+                        re_user,
+                        self.label_mapping,
+                        num_classes=self.num_classes,
+                        metric=self.agreement_metric,
+                        agreement_type=self.agreement_type,
+                    )
+                except KeyError:
+                    warnings.warn(
+                        "Key error for calculating intra-annotator agreement. Setting all intra-annotator agreement values to 1."
+                    )  # noqa
+                    self.G.nodes[user]["intra_agreement"] = 1
+                except Exception as e:
+                    self.G.nodes[user]["intra_agreement"] = 1
+                    print(e)
+        else:
+            for user in self.annotators:
                 self.G.nodes[user]["intra_agreement"] = 1
-            except Exception as e:
-                self.G.nodes[user]["intra_agreement"] = 1
-                print(e)
 
     def calculate_avg_inter_annotator_agreement(self):
         """Calculate each annotator's average agreement using
@@ -217,8 +261,11 @@ class Annotations:
                 weighted_agreement_sum / weights_sum if weights_sum else 0
             )
 
-    def calculate_annotator_reliability(
-            self, alpha=0.5, beta=0.5, epsilon=0.001):
+    def reset_annotator_reliability(self):
+        for _, node in self.G.nodes(data=True):
+            node["reliability"] = 1.0
+
+    def calculate_annotator_reliability(self, alpha=0.5, epsilon=0.001):
         """Recursively calculate annotator reliability, using
            intra-annotator agreement, inter-annotator agreement,
            or a mixture, controlled by the alpha and beta parameters.
@@ -229,19 +276,21 @@ class Annotations:
             beta (float): Default 0.5. Value between 0 and 1, controlling weight of inter-annotator agreement.  # noqa
             epsilon (float): Default 0.001. Controls the maximum change from the last iteration to indicate convergence.  # noqa
         """
-        if alpha + beta != 1:
-            raise ValueError("Alpha and Beta must sum to 1.0.")
+        if alpha > 1 or alpha < 0:
+            raise ValueError("Alpha must be set such that 0 <= alpha <= 1.")
 
-        if alpha < 0 or alpha > 1 or beta < 0 or beta > 1:
-            raise ValueError("Alpha and beta values must be between 0 and 1.")
+        beta = 1 - alpha
+
+        # set to 1 here to allow for re-calculation with different alpha
+        self.reset_annotator_reliability()
 
         # keep updating until convergence
         max_change = np.inf
         while abs(max_change) > epsilon:
             print("Running iteration.")
             previous_reliabilties = {
-                    node: data["reliability"]
-                    for (node, data) in self.G.nodes(data=True)}
+                node: data["reliability"] for (node, data) in self.G.nodes(data=True)
+            }
 
             # calculate the new inter annotator agreement scores
             self.calculate_avg_inter_annotator_agreement()
@@ -257,7 +306,9 @@ class Annotations:
             # find largest change as a marker
             max_change = max(
                 [
-                    abs(self.G.nodes[node]["reliability"] - previous_reliabilties[node])  # noqa
+                    abs(
+                        self.G.nodes[node]["reliability"] - previous_reliabilties[node]
+                    )  # noqa
                     for node in self.G.nodes()
                 ]
             )
@@ -279,8 +330,7 @@ class Annotations:
         Returns:
             dict: dictionary of key=username, value=reliability.
         """
-        return {node: self.G.nodes[node]["reliability"]
-                for node in self.G.nodes()}
+        return {node: self.G.nodes[node]["reliability"] for node in self.G.nodes()}
 
     def display_annotator_graph(self, legend=False):
         """Display the annotation graph."""
@@ -291,17 +341,16 @@ class Annotations:
         nx.draw_networkx_nodes(self.G, pos, node_size=node_size)
         nx.draw_networkx_edges(self.G, pos)
         # Get the usernames.
-        labels = {node: node.split('_', maxsplit=1)[-1]
-                  for node in self.G.nodes()}
+        labels = {node: node.split("_", maxsplit=1)[-1] for node in self.G.nodes()}
         nx.draw_networkx_labels(
             self.G, pos, labels=labels, font_color="white", font_size=24
         )
 
         # add inter-annotator agreement to edges
-        edge_labels = {(u, v): f"{d['agreement']:.3f}"
-                       for u, v, d in self.G.edges(data=True)}
-        nx.draw_networkx_edge_labels(
-                self.G, pos, edge_labels=edge_labels, font_size=24)
+        edge_labels = {
+            (u, v): f"{d['agreement']:.3f}" for u, v, d in self.G.edges(data=True)
+        }
+        nx.draw_networkx_edge_labels(self.G, pos, edge_labels=edge_labels, font_size=24)
 
         # adjust text pos for intra-annotator agreement
         for node, (x, y) in pos.items():
@@ -332,10 +381,12 @@ class Annotations:
 
         # legend for reliability
         if legend:
-            reliability_scores = {node: data["reliability"]
-                                  for (node, data) in self.G.nodes(data=True)}
-            texts = [f"{node}: {score:.3f}"
-                     for (node, score) in reliability_scores.items()]
+            reliability_scores = {
+                node: data["reliability"] for (node, data) in self.G.nodes(data=True)
+            }
+            texts = [
+                f"{node}: {score:.3f}" for (node, score) in reliability_scores.items()
+            ]
             reliability_text = "Reliability:\n\n" + "\n".join(texts)
             plt.text(
                 0.05,
@@ -353,9 +404,8 @@ class Annotations:
         plt.show()
 
     def display_agreement_heatmap(
-            self,
-            annotators: list = None,
-            other_annotators: list = None):
+        self, annotators: list = None, other_annotators: list = None, display_upper=False,
+    ):
         """Plot a heatmap of agreement metric values for the annotators.
 
         If both annotators and other_annotators are specifed, compares
@@ -373,18 +423,24 @@ class Annotations:
         mat[np.diag_indices(mat.shape[0])] = intras
         agreements = self.G.nodes(data="avg_inter_agreement")
         if annotators is not None and other_annotators is not None:
-            matrows = [i for (i, user) in enumerate(self.annotators)
-                       if user in annotators]
-            matcols = [i for (i, user) in enumerate(self.annotators)
-                       if user in other_annotators]
+            matrows = [
+                i for (i, user) in enumerate(self.annotators) if user in annotators
+            ]
+            matcols = [
+                i
+                for (i, user) in enumerate(self.annotators)
+                if user in other_annotators
+            ]
             # If we're comparing two sets of annotators,
             # slice the agreement matrix.
             mat = mat[matrows][:, matcols]
-            agreements = [(name, agree) for (name, agree) in agreements
-                          if name in annotators]
+            agreements = [
+                (name, agree) for (name, agree) in agreements if name in annotators
+            ]
 
-        sorted_by_agreement = sorted(enumerate(agreements),
-                                     key=lambda n: n[1][1], reverse=True)
+        sorted_by_agreement = sorted(
+            enumerate(agreements), key=lambda n: n[1][1], reverse=True
+        )
         ordered_row_idxs = [i for (i, _) in sorted_by_agreement]
         mat = mat[ordered_row_idxs]
 
@@ -400,13 +456,13 @@ class Annotations:
         if other_annotators is None:
             mat = mat[:, ordered_row_idxs]
             # Don't display upper triangle, since its redundant.
-            mat[np.triu_indices(mat.shape[0], k=1)] = np.nan
+            if not display_upper:
+                mat[np.triu_indices(mat.shape[0], k=1)] = np.nan
             xlabs = ylabs = sorted_users
         else:
             xlabs = other_annotators
             ylabs = sorted_users
-        sns.heatmap(mat, annot=True, fmt='.3f',
-                    xticklabels=xlabs, yticklabels=ylabs)
+        sns.heatmap(mat, annot=True, fmt=".3f", xticklabels=xlabs, yticklabels=ylabs)
         plt.show()
 
     def __str__(self):

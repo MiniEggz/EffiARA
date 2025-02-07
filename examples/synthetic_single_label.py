@@ -9,7 +9,6 @@ from effiara.data_generator import (
 from effiara.label_generators.effi_label_generator import EffiLabelGenerator
 from effiara.preparation import SampleDistributor
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--usernames", action="store_true", default=False)
 args = parser.parse_args()
@@ -31,13 +30,12 @@ sample_distributor = SampleDistributor(
     time_available=10,
     annotation_rate=None,
     num_samples=num_samples,
-    double_proportion=1/3,
-    re_proportion=1/2,
+    double_proportion=1 / 3,
+    re_proportion=1 / 2,
 )
 sample_distributor.set_project_distribution()
 print(sample_distributor)
-allocations = sample_distributor.distribute_samples(
-    df.copy(), all_reannotation=True)
+allocations = sample_distributor.distribute_samples(df.copy())
 
 annotator_dict = dict(zip(sample_distributor.annotators, correctness))
 annotated = annotate_samples(allocations, annotator_dict, num_classes)
@@ -45,14 +43,13 @@ annotations = concat_annotations(annotated)
 print(annotations)
 
 label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
-label_generator = EffiLabelGenerator(
-    sample_distributor.annotators, label_mapping)
-effiannos = Annotations(annotations, len(label_mapping), label_generator)
+label_generator = EffiLabelGenerator(sample_distributor.annotators, label_mapping)
+effiannos = Annotations(annotations, label_generator, reannotations=True)
 print(effiannos.get_reliability_dict())
 effiannos.display_annotator_graph()
 # Equivalent to the graph, but as a heatmap
 effiannos.display_agreement_heatmap()
 # Agreements between two subsets of annotators
 effiannos.display_agreement_heatmap(
-        annotators=effiannos.annotators[:4],
-        other_annotators=effiannos.annotators[3:])
+    annotators=effiannos.annotators[:4], other_annotators=effiannos.annotators[3:]
+)
