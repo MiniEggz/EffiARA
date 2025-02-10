@@ -25,7 +25,7 @@ def headings_contain_prob_labels(df, heading_1, heading_2, num_classes=3):
     Returns:
         bool: whether headings contain only soft labels.
     """
-    checks = df[[heading_1, heading_2]].applymap(
+    checks = df[[heading_1, heading_2]].map(
         lambda x: is_prob_label(x, num_classes)
     )
     return checks.all(axis=None)
@@ -51,6 +51,7 @@ def retrieve_pair_annotations(df, user_x, user_y, suffix="_label"):
     return df[condition1 & condition2].copy()
 
 
+# TODO: this really needs changing to csv_to_list
 def csv_to_array(csv_string):
     """Convert csv string (such as value1,value2,...) to
        an array ["value1", "value2", ...]
