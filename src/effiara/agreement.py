@@ -234,9 +234,14 @@ def calculate_krippendorff_alpha_per_label(
     # TODO: check that the column is in the correct format
     annotations_1 = np.vstack(pair_df[annotator_1_col].to_numpy())
     annotations_2 = np.vstack(pair_df[annotator_2_col].to_numpy())
-    assert (
-        annotations_1.shape == annotations_2.shape
-    ), "Annotation matrices must have the same shape"
+
+    is_annotations_1_numeric = np.issubdtype(annotations_1.dtype, np.number)
+    is_annotations_2_numeric = np.issubdtype(annotations_2.dtype, np.number)
+    if not is_annotations_1_numeric or not is_annotations_2_numeric:
+        raise ValueError("Annotations are not numeric!")
+
+    if annotations_1.shape != annotations_2.shape:
+        raise ValueError("Annotation matrices must have the same shape.")
 
     alpha_values = []
     # calculate alpha for each label
