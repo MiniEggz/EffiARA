@@ -11,7 +11,12 @@ def is_prob_label(x, num_classes):
     Returns:
         bool: whether x is a nd numpy vector.
     """
-    return isinstance(x, np.ndarray) and x.shape == (num_classes,)
+    is_array = isinstance(x, np.ndarray)
+    if not is_array:
+        return False
+    is_correct_shape = x.shape == (num_classes,)
+    sums_to_one = np.isclose(np.sum(x), 1)
+    return is_correct_shape and sums_to_one
 
 
 def headings_contain_prob_labels(df, heading_1, heading_2, num_classes=3):

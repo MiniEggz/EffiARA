@@ -39,6 +39,11 @@ def pairwise_nominal_krippendorff_agreement(
     pair_df[heading_1 + "_numeric"] = pair_df[heading_1].map(label_mapping)
     pair_df[heading_2 + "_numeric"] = pair_df[heading_2].map(label_mapping)
 
+    if pair_df[heading_1 + "_numeric"].isna().any() or pair_df[heading_2 + "_numeric"].isna().any():
+        raise ValueError(
+            "Unexpected label found; Please ensure your label mapping is comprehensive."  # noqa
+        )
+
     # turn the pair dataframe into 2d array for Krippendorff calculation
     krippendorff_format_data = (
         pair_df[[heading_1 + "_numeric", heading_2 + "_numeric"]].to_numpy().T
@@ -118,11 +123,22 @@ def cosine_similarity(vector_a, vector_b):
 
     Returns:
         float: cosine similarity between the two vectors.
-    """
-    return np.dot(vector_a, vector_b) / (
-        np.linalg.norm(vector_a) * np.linalg.norm(vector_b)
-    )
 
+    Raises:
+        ZeroDivisionError: when vector_a or vector_b is the zero vector.
+    """
+    if not isinstance(vector_a, np.ndarray) or not isinstance(vector_b, np.ndarray):
+        raise ValueError("Vectors a and b MUST be of type np.ndarray.")
+    if vector_a.shape != vector_b.shape:
+        raise ValueError("Vectors a and b must be of the same shape.")
+
+    numerator = np.dot(vector_a, vector_b)
+    divisor = np.linalg.norm(vector_a) * np.linalg.norm(vector_b)
+
+    if np.isclose(divisor, 0):
+        raise ZeroDivisionError("Zero division has occurred, vector a or b is the zero vector.")
+
+    return numerator / divisor
 
 def pairwise_cosine_similarity(pair_df, heading_1, heading_2, num_classes=3):
     """Calculate the cosine similarity between two columns of soft labels.
@@ -142,6 +158,9 @@ def pairwise_cosine_similarity(pair_df, heading_1, heading_2, num_classes=3):
         raise ValueError(
             "One or both of the columns given contain NaN values; the column names may be incorrect or there is an issue with the data."  # noqa
         )
+
+    if len(pair_df[heading_1]) == 0 or len(pair_df[heading_2]) == 0:
+        raise ValueError("One or both of the columns is empty.")
 
     if not headings_contain_prob_labels(pair_df, heading_1, heading_2, num_classes):
         raise Exception("No probabilistic labels found in dataframe.")
