@@ -39,7 +39,10 @@ def pairwise_nominal_krippendorff_agreement(
     pair_df[heading_1 + "_numeric"] = pair_df[heading_1].map(label_mapping)
     pair_df[heading_2 + "_numeric"] = pair_df[heading_2].map(label_mapping)
 
-    if pair_df[heading_1 + "_numeric"].isna().any() or pair_df[heading_2 + "_numeric"].isna().any():
+    if (
+        pair_df[heading_1 + "_numeric"].isna().any()
+        or pair_df[heading_2 + "_numeric"].isna().any()
+    ):
         raise ValueError(
             "Unexpected label found; Please ensure your label mapping is comprehensive."  # noqa
         )
@@ -73,9 +76,25 @@ def pairwise_cohens_kappa_agreement(pair_df, heading_1, heading_2, label_mapping
     Returns:
         float: Cohen's Kappa.
     """
+    if pair_df[heading_1].isna().any() or pair_df[heading_2].isna().any():
+        raise ValueError(
+            "One or both of the columns given contain NaN values; the column names may be incorrect or there is an issue with the data."  # noqa
+        )
+
+    if pair_df[heading_1].empty or pair_df[heading_2].empty:
+        raise ValueError("One or both of the columns is empty.")
+
     # convert string categories to numeric values
     pair_df[heading_1 + "_numeric"] = pair_df[heading_1].map(label_mapping)
     pair_df[heading_2 + "_numeric"] = pair_df[heading_2].map(label_mapping)
+
+    if (
+        pair_df[heading_1 + "_numeric"].isna().any()
+        or pair_df[heading_2 + "_numeric"].isna().any()
+    ):
+        raise ValueError(
+            "Unexpected label found; Please ensure your label mapping is comprehensive."  # noqa
+        )
 
     user_x = pair_df[heading_1 + "_numeric"].to_numpy()
     user_y = pair_df[heading_2 + "_numeric"].to_numpy()
@@ -103,9 +122,25 @@ def pairwise_fleiss_kappa_agreement(pair_df, heading_1, heading_2, label_mapping
     Returns:
         float: Fleiss' Kappa.
     """
+    if pair_df[heading_1].isna().any() or pair_df[heading_2].isna().any():
+        raise ValueError(
+            "One or both of the columns given contain NaN values; the column names may be incorrect or there is an issue with the data."  # noqa
+        )
+
+    if pair_df[heading_1].empty or pair_df[heading_2].empty:
+        raise ValueError("One or both of the columns is empty.")
+
     # convert string categories to numeric values
     pair_df[heading_1 + "_numeric"] = pair_df[heading_1].map(label_mapping)
     pair_df[heading_2 + "_numeric"] = pair_df[heading_2].map(label_mapping)
+
+    if (
+        pair_df[heading_1 + "_numeric"].isna().any()
+        or pair_df[heading_2 + "_numeric"].isna().any()
+    ):
+        raise ValueError(
+            "Unexpected label found; Please ensure your label mapping is comprehensive."  # noqa
+        )
 
     fleiss_format_data, _ = aggregate_raters(
         (pair_df[[heading_1 + "_numeric", heading_2 + "_numeric"]].to_numpy())
@@ -136,9 +171,12 @@ def cosine_similarity(vector_a, vector_b):
     divisor = np.linalg.norm(vector_a) * np.linalg.norm(vector_b)
 
     if np.isclose(divisor, 0):
-        raise ZeroDivisionError("Zero division has occurred, vector a or b is the zero vector.")
+        raise ZeroDivisionError(
+            "Zero division has occurred, vector a or b is the zero vector."
+        )
 
     return numerator / divisor
+
 
 def pairwise_cosine_similarity(pair_df, heading_1, heading_2, num_classes=3):
     """Calculate the cosine similarity between two columns of soft labels.
