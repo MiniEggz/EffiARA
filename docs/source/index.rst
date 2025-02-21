@@ -21,7 +21,7 @@ and computing reliability using inter- and intra-annotator agreement.
    :caption: Contents:
 
    getting_started
-   label_generators
+   advanced_usage
 
 
 .. toctree::
