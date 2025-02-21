@@ -65,7 +65,7 @@ class LabelGenerator(ABC):
 
         # Create a default label mapping
         labels = df[label_cols].values.flatten()
-        labels_set = set(labels[~np.isnan(labels)].tolist())
+        labels_set = set(labels[~pd.isnull(labels)].tolist())
 
         num_classes = num_classes or len(labels_set)
         if num_classes < len(labels_set):

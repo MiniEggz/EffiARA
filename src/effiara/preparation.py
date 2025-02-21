@@ -283,7 +283,7 @@ class SampleDistributor:
                 annotations_dict[link_2_annotator].append(second_double_samples)  # noqa
 
         if len(df) > 0:
-            annotations_dict["left_over"] = df
+            annotations_dict["left_over"] = [df]
 
         for user, df_list in annotations_dict.items():
             # concat all user's dataframes

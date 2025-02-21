@@ -415,6 +415,10 @@ class Annotations:
         Args:
             annotators (list): Optional.
             other_annotators (list): Optional.
+
+        Returns:
+            np.ndarray: A matrix of the data displayed on the graph.
+            List[str]: List of annotators in the order of the matrix rows.
         """
         mat = nx.to_numpy_array(self.G, weight="agreement")
         # Put intra-agreements on the diagonal
@@ -434,9 +438,7 @@ class Annotations:
             # If we're comparing two sets of annotators,
             # slice the agreement matrix.
             mat = mat[matrows][:, matcols]
-            agreements = [
-                (name, agree) for (name, agree) in agreements if name in annotators
-            ]
+            agreements = zip(annotators, np.mean(mat, axis=1))
 
         sorted_by_agreement = sorted(
             enumerate(agreements), key=lambda n: n[1][1], reverse=True
@@ -460,10 +462,11 @@ class Annotations:
                 mat[np.triu_indices(mat.shape[0], k=1)] = np.nan
             xlabs = ylabs = sorted_users
         else:
-            xlabs = other_annotators
+            xlabs = [user for user in self.annotators if user in other_annotators]
             ylabs = sorted_users
         sns.heatmap(mat, annot=True, fmt=".3f", xticklabels=xlabs, yticklabels=ylabs)
         plt.show()
+        return mat, sorted_users
 
     def __str__(self):
         return_string = ""
