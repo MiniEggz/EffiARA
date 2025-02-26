@@ -26,7 +26,6 @@ correctness = [0.95, 0.67, 0.58, 0.63, 0.995, 0.45]
 
 sample_distributor = SampleDistributor(
     annotators=annotators,
-    num_annotators=len(correctness),
     time_available=10,
     annotation_rate=None,
     num_samples=num_samples,

@@ -22,7 +22,6 @@ print(annotator_dict)
 # Note that one of the __init__ variables must be None.
 sample_distributor = SampleDistributor(
     annotators=annotators,
-    num_annotators=len(annotators),
     time_available=10,
     # This is unknown. SampleDistributor will solve for it.
     annotation_rate=None,

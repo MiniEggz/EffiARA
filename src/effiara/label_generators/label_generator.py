@@ -1,6 +1,6 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -35,7 +35,8 @@ class LabelGenerator(ABC):
 
     @classmethod
     def from_annotations(cls, df: pd.DataFrame, num_classes=None):
-        """Initialize from an annotations dataframe
+        """Initialize from an annotations dataframe. Relies on
+        labels being stored in the *_label columns.
 
         Args:
             df (pd.DataFrame): annotations, must contain *_label columns.
@@ -43,9 +44,7 @@ class LabelGenerator(ABC):
         """
         # Check for columns with hard labels.
         label_cols = [
-            c
-            for c in df.columns
-            if c != "true_label" and c.endswith("_label") and not c.startswith("re_")
+            c for c in df.columns if c != "true_label" and c.endswith("_label")
         ]
         if len(label_cols) == 0:
             raise ValueError("No *_label columns found in annotations!")
@@ -53,7 +52,9 @@ class LabelGenerator(ABC):
         # Find annotators from label columns
         user_re = re.compile(r"(re_)?([\w -_]+)_.+")
         annotators = []
-        for lc in label_cols:
+        # keep label cols with "re_" prefix for label mapping
+        user_label_cols = [col for col in label_cols if not col.startswith("re_")]
+        for lc in user_label_cols:
             user_re_match = user_re.match(lc)
             if user_re_match is None:
                 raise ValueError(f"Improperly formatted label column '{lc}'")
@@ -65,7 +66,7 @@ class LabelGenerator(ABC):
 
         # Create a default label mapping
         labels = df[label_cols].values.flatten()
-        labels_set = set(labels[~pd.isnull(labels)].tolist())
+        labels_set = set(labels[pd.notna(labels)].tolist())
 
         num_classes = num_classes or len(labels_set)
         if num_classes < len(labels_set):
