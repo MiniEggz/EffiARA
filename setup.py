@@ -1,8 +1,12 @@
+import os
+
 from setuptools import find_packages, setup
 
 
 def load_requirements(filename="requirements.txt"):
-    with open(filename, "r") as f:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    req_file = os.path.join(base_dir, filename)
+    with open(req_file, "r") as f:
         return f.read().splitlines()
 
 
@@ -15,7 +19,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     install_requires=load_requirements(),
-    python_requires=">=3.6",
+    python_requires=">=3.9",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
