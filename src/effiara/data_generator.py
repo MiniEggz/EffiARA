@@ -30,9 +30,7 @@ def generate_annotator_label(
         return np.random.choice(list(set(range(num_classes)) - {true_label}))
 
 
-def generate_samples(num_samples: int,
-                     num_classes: int,
-                     seed=None) -> pd.DataFrame:
+def generate_samples(num_samples: int, num_classes: int, seed=None) -> pd.DataFrame:
     """Generate a set of anntotations to be tested in annotator
        reliability assessment. Allows control over how good each
        annotator should be, allowing the assessment of the annotation
@@ -54,9 +52,11 @@ def generate_samples(num_samples: int,
     return dataset
 
 
-def annotate_samples(user_df_dict: Dict[str, pd.DataFrame],
-                     user_correctness: Dict[str, float],
-                     num_classes: int) -> Dict[str, pd.DataFrame]:
+def annotate_samples(
+    user_df_dict: Dict[str, pd.DataFrame],
+    user_correctness: Dict[str, float],
+    num_classes: int,
+) -> Dict[str, pd.DataFrame]:
     """Generate annotations according to annotator correctness.
 
     Args:
@@ -70,10 +70,12 @@ def annotate_samples(user_df_dict: Dict[str, pd.DataFrame],
     """
 
     if set(user_df_dict.keys()) != set(user_correctness.keys()):
-        raise ValueError(f"Found different users in user_df_dict and user_correctness.")  # noqa
+        raise ValueError(
+            f"Found different users in user_df_dict and user_correctness."
+        )  # noqa
 
     new_user_df_dict = {}
-    for (user, df) in user_df_dict.items():
+    for user, df in user_df_dict.items():
         # annotate samples
         df.loc[~df["is_reannotation"], f"{user}_label"] = df.loc[
             ~df["is_reannotation"], "true_label"
@@ -146,7 +148,9 @@ def user_df_merge(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
         if col.endswith("_dup"):
             original_col = col.replace("_dup", "")
             if original_col in merged.columns:
-                merged[original_col] = merged[original_col].combine_first(merged[col])  # noqa
+                merged[original_col] = merged[original_col].combine_first(
+                    merged[col]
+                )  # noqa
 
                 # check for consistency
                 inconsistent = (
@@ -192,9 +196,9 @@ def generate_data(sample_distributor: SampleDistributor,
     dataset = pd.DataFrame()
     num_annotators = len(annotator_dict)
     annotators = list(annotator_dict.keys())
-    for (i, current_annotator) in enumerate(annotators):
-        link_1_annotator = annotators[(i+1) % num_annotators]
-        link_2_annotator = annotators[(i+2) % num_annotators]
+    for i, current_annotator in enumerate(annotators):
+        link_1_annotator = annotators[(i + 1) % num_annotators]
+        link_2_annotator = annotators[(i + 2) % num_annotators]
 
         # current annotator single annotations
         true_labels = np.random.randint(

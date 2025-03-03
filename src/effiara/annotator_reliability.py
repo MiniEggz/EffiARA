@@ -9,7 +9,7 @@ import pandas as pd
 import seaborn as sns
 
 from effiara.agreement import pairwise_agreement
-from effiara.label_generators import LabelGenerator, DefaultLabelGenerator
+from effiara.label_generators import DefaultLabelGenerator, LabelGenerator
 from effiara.utils import retrieve_pair_annotations
 
 
@@ -67,6 +67,7 @@ class Annotations:
             label_generator = DefaultLabelGenerator.from_annotations(self.df)
 
         self.label_generator = label_generator
+        assert self.label_generator is not None
         self.annotators = label_generator.annotators
         self.num_annotators = label_generator.num_annotators
         self.label_mapping = label_generator.label_mapping
@@ -287,7 +288,7 @@ class Annotations:
         # keep updating until convergence
         max_change = np.inf
         while abs(max_change) > epsilon:
-            print("Running iteration.")
+            # print("Running iteration.")
             previous_reliabilties = {
                 node: data["reliability"] for (node, data) in self.G.nodes(data=True)
             }
@@ -404,7 +405,10 @@ class Annotations:
         plt.show()
 
     def display_agreement_heatmap(
-        self, annotators: list = None, other_annotators: list = None, display_upper=False,
+        self,
+        annotators: Optional[list] = None,
+        other_annotators: Optional[list] = None,
+        display_upper=False,
     ):
         """Plot a heatmap of agreement metric values for the annotators.
 

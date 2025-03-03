@@ -292,6 +292,22 @@ make html
 Then open `docs/build/index.html` in your browser.
 
 
+## Tests
+Install the test requirements:
+```
+pip install pytest pytest-mock
+```
+
+After installing the test modules, run the tests using:
+```
+PYTHONPATH=src pytest tests
+```
+or
+```
+PYTHONPATH=src python -m pytest tests
+```
+
+
 ## Contribution
 
 We warmly welcome contributions to improve EffiARA! If you find that this package doesn't fully suit your needs but could with a small change, we encourage you to contribute to the project. Here's how you can help:
@@ -303,6 +319,8 @@ We warmly welcome contributions to improve EffiARA! If you find that this packag
 - All contributions are welcome but must pass the CI/CD pipeline.
 - Each PR will require at least one approval before being merged.
 - Please ensure your code is well-documented and follows the project’s coding style.
+
+Before submitting your code for a PR, please run isort, black (both with default settings), and ensure all the tests pass.
 
 ### Need Help?
 If you’d like to discuss a potential contribution or have any questions, feel free to contact me directly at **oscook1@sheffield.ac.uk**. I'm happy to help!

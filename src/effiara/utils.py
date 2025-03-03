@@ -11,7 +11,14 @@ def is_prob_label(x, num_classes):
     Returns:
         bool: whether x is a nd numpy vector.
     """
-    return isinstance(x, np.ndarray) and x.shape == (num_classes,)
+    is_array = isinstance(x, np.ndarray)
+    if not is_array:
+        return False
+    if np.any(x < 0):
+        return False
+    is_correct_shape = x.shape == (num_classes,)
+    sums_to_one = np.isclose(np.sum(x), 1)
+    return is_correct_shape and sums_to_one
 
 
 def headings_contain_prob_labels(df, heading_1, heading_2, num_classes=3):
@@ -25,9 +32,7 @@ def headings_contain_prob_labels(df, heading_1, heading_2, num_classes=3):
     Returns:
         bool: whether headings contain only soft labels.
     """
-    checks = df[[heading_1, heading_2]].applymap(
-        lambda x: is_prob_label(x, num_classes)
-    )
+    checks = df[[heading_1, heading_2]].map(lambda x: is_prob_label(x, num_classes))
     return checks.all(axis=None)
 
 
@@ -51,6 +56,7 @@ def retrieve_pair_annotations(df, user_x, user_y, suffix="_label"):
     return df[condition1 & condition2].copy()
 
 
+# TODO: this really needs changing to csv_to_list
 def csv_to_array(csv_string):
     """Convert csv string (such as value1,value2,...) to
        an array ["value1", "value2", ...]
