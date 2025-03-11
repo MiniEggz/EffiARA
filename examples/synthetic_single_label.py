@@ -21,6 +21,9 @@ df = generate_samples(num_samples, num_classes, seed=0)
 annotators = None
 if args.usernames is True:
     annotators = ["aa", "bb", "cc", "dd", "ee", "ff"]
+else:
+    annotators = [f"user_{i}" for i in range(1, 7)]
+
 # Percentage correctness for each annotator.
 correctness = [0.95, 0.67, 0.58, 0.63, 0.995, 0.45]
 
