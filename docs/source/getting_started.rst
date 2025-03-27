@@ -5,8 +5,15 @@ Getting Started
 Installation
 ------------
 
-EffiARA is currently in active development and a PyPI package is in the works.
-In the meantime, you can install EffiARA like so.
+EffiARA is available as a PyPI package.
+
+
+.. code-block:: bash
+
+   pip install effiara
+
+
+You can also install from source like so
 
 .. code-block:: bash
 
@@ -27,7 +34,7 @@ EffiARA assumes a common data format for all annotations. This format is a :code
 object with a column for each annotation from each annotator. The column name format for a user's annotations is
 :code:`{username}_label` and each row is a unique sample.
 
-Let's assume we have the following CSV file saved as "example.csv".
+Let's assume we have the following CSV file.
 
 
 .. csv-table:: example.csv
@@ -45,8 +52,11 @@ EffiARA will account for this when computing agreement. Let's read this data int
 
 .. code-block:: python
 
+   import numpy as np
    import pandas as pd
-   annotations = pd.read_csv("example.csv")
+   annotations = pd.DataFrame({"Larry_label": ["yes", "no", np.nan, "no"],
+                               "Curly_label": ["no", "no", "yes", "no"],
+                               "Moe_label":   ["yes", np.nan, "yes", "no"]})
    print(annotations)
 
         Larry_label Curly_label Moe_label
@@ -88,9 +98,25 @@ this class with our annotations DataFrame and get agreements and annotator relia
    avg_inter_agreement: 0.7569637792475039
 
 
+Different agreement metrics can be specified via the :code:`agreement_metric` argument to the
+:code:`Annotations` class. The available metrics are:
+
+ * Krippendorff's alpha (:code:`"krippendorff"`)
+ * Cohen's kappa (:code:`"cohen"`)
+ * Fleiss' kappa (:code:`"fliess"`)
+ * Multi-label Krippendorff's alpha (:code:`"multi_krippendorff"`)
+ * Cosine similarity (:code:`"cosine"`)
+
+The first three metrics assume hard labels. Multi-label Krippendorff, as the name suggests, is designed for tasks where
+each sample can have multiple labels assigned to it. Cosine similarity assumes soft, probabilistic labels (see :doc:`/label_generators` for guidance on using soft labels in EffiARA).
+
+
 
 Minimum Working Example
 -----------------------
+
+Below is a full working example of how to use EffiARA. We employ some helper functions to generate data
+points and annotations, then read these into the :code:`Annotations` class to compute agreement.
 
 .. literalinclude:: ../../examples/minimal.py
    :language: python

@@ -25,7 +25,7 @@ and computing reliability using inter- and intra-annotator agreement.
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: API:
    
    api
