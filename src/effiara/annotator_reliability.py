@@ -102,6 +102,18 @@ class Annotations:
         self.calculate_inter_annotator_agreement()
         self.calculate_annotator_reliability(alpha=self.reliability_alpha)
 
+    def __getitem__(self, users):
+        if isinstance(users, str):
+            # Just one user specified
+            item = self.G.nodes()[users]
+        else:
+            if not isinstance(users, (tuple, list)):
+                raise KeyError(str(users))
+            if len(users) > 2:
+                raise ValueError(f"__getitem__ takes one or two users.")
+            item = self.G.edges()[users]
+        return item
+
     def replace_labels(self):
         """Merge labels. Uses find and replace so do not switch labels e.g.
         {"misinfo": ["debunk"], "debunk": ["misinfo", "other"]}.
@@ -201,6 +213,7 @@ class Annotations:
                     num_classes=self.num_classes,
                     metric=self.agreement_metric,
                     agreement_type=self.agreement_type,
+                    label_suffix=self.agreement_suffix
                 )
 
         # add all agreement scores to the graph
@@ -230,6 +243,7 @@ class Annotations:
                         num_classes=self.num_classes,
                         metric=self.agreement_metric,
                         agreement_type=self.agreement_type,
+                        label_suffix=self.agreement_suffix
                     )
                 except KeyError:
                     warnings.warn(
