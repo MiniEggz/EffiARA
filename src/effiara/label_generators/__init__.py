@@ -1,1 +1,3 @@
 from .label_generator import LabelGenerator, DefaultLabelGenerator
+from .topic_label_generator import TopicLabelGenerator
+from .effi_label_generator import EffiLabelGenerator
