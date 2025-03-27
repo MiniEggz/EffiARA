@@ -50,6 +50,16 @@ effiannos = Annotations(annotations, reannotations=True)
 #                         label_generator=label_generator)
 print(effiannos.get_reliability_dict())
 
+# Get agreement info for annotators like so
+user_info = effiannos["Larry"]
+print(user_info)
+agreement = effiannos["Larry", "Moe"]
+print(agreement)
+
 # Edges are inter-annotator reliability
 # Nodes are intra-annotator reliability
 effiannos.display_annotator_graph()
+
+# The graph isn't very readable with more than 5 or 6 annotators
+# In these cases, we can also plot the agreements as a heatmap.
+effiannos.display_agreement_heatmap()
