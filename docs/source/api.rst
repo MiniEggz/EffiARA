@@ -9,3 +9,6 @@ API
 
 .. autoclass:: effiara.label_generators.LabelGenerator
    :members:
+
+.. automodule:: effiara.agreement
+   :members:
