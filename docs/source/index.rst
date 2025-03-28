@@ -22,13 +22,8 @@ and computing reliability using inter- and intra-annotator agreement.
 
    getting_started
    advanced_usage
-
-
-.. toctree::
-   :maxdepth: 1
-   :caption: API:
-   
    api
+
 
 
 Indices and tables

@@ -48,8 +48,9 @@ It then solves the aforementioned equation for the fifth variable and assigns sa
    # Generate some dummy data to allocate.
    df = pd.DataFrame({"sample_id": range(1000), "value": np.random.randint(5, size=(1000, 2))})
 
+   annotators = ["Larry", "Curly", "Moe"]
    distrib = SampleDistributor(
-       num_annotators=4,
+       annotators=annotators,
        num_samples=None,  # We want to solve for this
        annotation_rate=20,
        time_available=4,
@@ -60,7 +61,7 @@ It then solves the aforementioned equation for the fifth variable and assigns sa
    distrib.set_project_distribution()  # solve the equation above
    allocations = distrib.distribute_samples(df.copy())
 
-:code:`allocations` is a Python :code:`dict` of usernames to Pandas DataFrames indicating the samples
+:code:`allocations` is a Python :code:`dict` of annotator names to Pandas DataFrames indicating the samples
 allocated to each annotator.
 
 
