@@ -279,28 +279,32 @@ def pairwise_agreement(
         df (pd.DataFrame): full dataframe containing the whole dataset.
         user_x (str): name of the user in the form user_x.
         user_y (str): name of the user in the form user_y.
-        metric (str): agreement metric to use for
-                      inter-/intra-annotator agreement:
-            - krippendorff: nominal krippendorff's alpha similarity metric
-                            on hard labels only.
-            - cohen: nominal cohen's kappa similarity metric on hard
-                     labels only.
-            - fleiss: nominal fleiss kappa similarity metric on hard
-                      labels only.
-            - multi_krippendorff: krippendorff similarity by label for
-                                  multilabel classification.
-            - cosine: the cosine similarity metric to be used on soft labels.
-        agreement_type (str):
-            type of agreement:
-                - nominal
-                - ordinal
-                - interval
-                - ratio
+        metric (str): agreement metric to use for inter-/intra-annotator agreement.
+
+            * krippendorff: nominal krippendorff's alpha similarity metric on hard labels only.
+
+            * cohen: nominal cohen's kappa similarity metric on hard labels only.
+
+            * fleiss: nominal fleiss kappa similarity metric on hard labels only.
+
+            * multi_krippendorff: krippendorff similarity by label for multilabel classification.
+
+            * cosine: the cosine similarity metric to be used on soft labels.
+
+        agreement_type (str): type of agreement.  * nominal
+
+            * ordinal
+
+            * interval
+
+            * ratio
+
             NOTE: currently only working for multi_krippendorff.
         label_suffix (str): suffix for the label being compared.
 
     Returns:
         float: agreement between user_x and user_y.
+
     """
     pair_df = retrieve_pair_annotations(df, user_x, user_y)
     if metric == "krippendorff":

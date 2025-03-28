@@ -1,8 +1,14 @@
+API
+===
+
+.. automodule:: effiara.annotator_reliability
+   :members:
+
 .. autoclass:: effiara.preparation::SampleDistributor
    :members:
 
-.. automodule:: effiara.agreement
+.. autoclass:: effiara.label_generators.LabelGenerator
    :members:
 
-.. automodule:: effiara.annotator_reliability
+.. automodule:: effiara.agreement
    :members:

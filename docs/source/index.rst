@@ -21,14 +21,9 @@ and computing reliability using inter- and intra-annotator agreement.
    :caption: Contents:
 
    getting_started
-   label_generators
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: API:
-   
+   advanced_usage
    api
+
 
 
 Indices and tables
