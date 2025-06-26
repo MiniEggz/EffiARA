@@ -34,7 +34,7 @@ EffiARA assumes a common data format for all annotations. This format is a :code
 object with a column for each annotation from each annotator. The column name format for a user's annotations is
 :code:`{username}_label` and each row is a unique sample.
 
-Let's assume we have the following CSV file.
+Let's assume we have the following CSV file saved as "example.csv".
 
 
 .. csv-table:: example.csv
@@ -52,11 +52,9 @@ EffiARA will account for this when computing agreement. Let's read this data int
 
 .. code-block:: python
 
-   import numpy as np
    import pandas as pd
-   annotations = pd.DataFrame({"Larry_label": ["yes", "no", np.nan, "no"],
-                               "Curly_label": ["no", "no", "yes", "no"],
-                               "Moe_label":   ["yes", np.nan, "yes", "no"]})
+   annotations = pd.read_csv("example.csv")
+
    print(annotations)
 
         Larry_label Curly_label Moe_label

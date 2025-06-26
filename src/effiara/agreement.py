@@ -290,7 +290,7 @@ def pairwise_agreement(
             * multi_krippendorff: krippendorff similarity by label for multilabel classification.
 
             * cosine: the cosine similarity metric to be used on soft labels.
-
+            
         agreement_type (str): type of agreement.  * nominal
 
             * ordinal
