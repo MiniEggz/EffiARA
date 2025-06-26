@@ -11,9 +11,9 @@ class LabelGenerator(ABC):
 
     This class should be subclassed for each individual annotation
     project. The subclass should override the following methods:
-      * add_annotation_prob_labels
-      * add_sample_prob_labels
-      * add_sample_hard_labels
+    :code:`add_annotation_prob_labels`,
+    :code:`add_sample_prob_labels`,
+    :code:`add_sample_hard_labels`
 
     That is, create a new file with the following:
 
@@ -36,10 +36,10 @@ class LabelGenerator(ABC):
     @classmethod
     def from_annotations(cls, df: pd.DataFrame, num_classes=None):
         """Initialize from an annotations dataframe. Relies on
-        labels being stored in the *_label columns.
+        labels being stored in the _label columns.
 
         Args:
-            df (pd.DataFrame): annotations, must contain *_label columns.
+            df (pd.DataFrame): annotations, must contain _label columns.
             num_classes (int): if not None, infer from df.
         """
         # Check for columns with hard labels.

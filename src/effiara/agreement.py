@@ -281,15 +281,16 @@ def pairwise_agreement(
         user_y (str): name of the user in the form user_y.
         metric (str): agreement metric to use for inter-/intra-annotator agreement.
 
-            krippendorff: nominal krippendorff's alpha similarity metric on hard labels only.
+            * krippendorff: nominal krippendorff's alpha similarity metric on hard labels only.
 
-            cohen: nominal cohen's kappa similarity metric on hard labels only.
+            * cohen: nominal cohen's kappa similarity metric on hard labels only.
 
-            fleiss: nominal fleiss kappa similarity metric on hard labels only.
+            * fleiss: nominal fleiss kappa similarity metric on hard labels only.
 
-            multi_krippendorff: krippendorff similarity by label for multilabel classification.
+            * multi_krippendorff: krippendorff similarity by label for multilabel classification.
 
-            cosine: the cosine similarity metric to be used on soft labels.
+            * cosine: the cosine similarity metric to be used on soft labels.
+            
         agreement_type (str): type of agreement.  * nominal
 
             * ordinal

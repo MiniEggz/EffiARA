@@ -1,5 +1,5 @@
 import warnings
-from itertools import combinations, product
+from itertools import combinations
 from typing import Optional
 
 import matplotlib.pyplot as plt
@@ -213,7 +213,7 @@ class Annotations:
                     num_classes=self.num_classes,
                     metric=self.agreement_metric,
                     agreement_type=self.agreement_type,
-                    label_suffix=self.agreement_suffix
+                    label_suffix=self.agreement_suffix,
                 )
 
         # add all agreement scores to the graph
@@ -243,7 +243,7 @@ class Annotations:
                         num_classes=self.num_classes,
                         metric=self.agreement_metric,
                         agreement_type=self.agreement_type,
-                        label_suffix=self.agreement_suffix
+                        label_suffix=self.agreement_suffix,
                     )
                 except KeyError:
                     warnings.warn(
