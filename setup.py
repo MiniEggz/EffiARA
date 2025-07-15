@@ -1,6 +1,10 @@
 import os
+from pathlib import Path
 
 from setuptools import find_packages, setup
+
+root_dir = Path(__file__).parent
+long_description = (root_dir / "README.md").read_text(encoding="utf-8")
 
 
 def load_requirements(filename="requirements.txt"):
@@ -14,6 +18,8 @@ setup(
     name="effiara",
     version="0.1.1",
     description="Package for distributing annotations and calculating annotator agreement/reliability using the EffiARA framework.",  # noqa
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="Owen Cook",
     author_email="owenscook1@gmail.com",
     packages=find_packages(where="src"),
