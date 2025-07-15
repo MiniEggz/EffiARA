@@ -12,7 +12,7 @@ def load_requirements(filename="requirements.txt"):
 
 setup(
     name="effiara",
-    version="0.1.0",
+    version="0.1.1",
     description="Package for distributing annotations and calculating annotator agreement/reliability using the EffiARA framework.",  # noqa
     author="Owen Cook",
     author_email="owenscook1@gmail.com",
