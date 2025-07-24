@@ -161,17 +161,14 @@ class Annotations:
         Args:
             property (str): the name of the edge property to normalise.
         """
-        total = sum(edge[property] for _, _, edge in self.G.edges(data=True))
+        denominator = sum(
+            np.exp(edge[property]) for _, _, edge in self.G.edges(data=True)
+        )
+        # TODO: update to ensure certain properties exist
         num_edges = self.G.number_of_edges()
 
-        avg = total / num_edges
-        if avg < 0:
-            raise ValueError(
-                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa."
-            )  # noqa
-
         for _, _, edge in self.G.edges(data=True):
-            edge[property] /= avg
+            edge[property] = float(np.exp(edge[property]) * num_edges / denominator)
 
     def normalise_node_property(self, property):
         """Normalise a node property to have a mean of 1.
@@ -179,17 +176,13 @@ class Annotations:
         Args:
             property (str): the name of the node property to normalise.
         """
-        total = sum(node[property] for _, node in self.G.nodes(data=True))
+        denominator = sum(np.exp(node[property]) for _, node in self.G.nodes(data=True))
         num_nodes = self.G.number_of_nodes()
 
-        avg = total / num_nodes
-        if avg < 0:
-            raise ValueError(
-                "Mean value must be greater than zero, high agreement/reliability will become low and vice versa."
-            )  # noqa
-
         for node in self.G.nodes():
-            self.G.nodes[node][property] /= avg
+            self.G.nodes[node][property] = float(
+                np.exp(self.G.nodes[node][property]) * num_nodes / denominator
+            )
 
     def calculate_inter_annotator_agreement(self):
         """Calculate the inter-annotator agreement between each
