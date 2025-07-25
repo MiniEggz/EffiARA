@@ -44,7 +44,8 @@ class Annotations:
         overlap_threshold: int = 15,
         merge_labels: Optional[dict] = None,
         reliability_alpha: float = 0.5,
-        reannotations=False,
+        reannotations: bool=False,
+        strength: float=1,
     ):
         """
         Args:
@@ -86,6 +87,8 @@ class Annotations:
 
         # TODO: add some check for reannotations
         self.reannotations = reannotations  # TODO: replace w/ function to look for re_
+        
+        self.strength = strength
 
         # set in self.calculate_inter_annotator_agreement
         self.overall_inter_annotator_agreement = np.nan
@@ -320,6 +323,11 @@ class Annotations:
                     for node in self.G.nodes()
                 ]
             )
+
+        # add strength of reliability
+        for _, node in self.G.nodes(data=True):
+            node["reliability"] **= self.strength
+        self.normalise_node_property("reliability")
 
     def get_user_reliability(self, username):
         """Get the reliability of a given annotator.
