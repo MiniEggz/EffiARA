@@ -149,6 +149,37 @@ def pairwise_fleiss_kappa_agreement(pair_df, heading_1, heading_2, label_mapping
     return fleiss_kappa(fleiss_format_data, method="fleiss")
 
 
+def pairwise_percentage_agreement(pair_df, heading_1, heading_2):
+    """Pairwise percentage agreement between two annotators, given two
+       headings for each annotator column containing their primary label
+       for each sample.
+
+       Does not require any specific formatting of labels within the columns
+       heading_1 and heading_2.
+
+    Args:
+        pair_df (pd.DataFrame): dataframe filtered to contain only the samples
+                                that allow agreement calculations.
+        heading_1 (str): heading of the first column required
+                         to calculate agreement.
+        heading_2 (str): heading of the second column required
+                         to calculate agreement.
+
+    Returns:
+        float: Percentage agreement.
+    """
+    if pair_df[heading_1].isna().any() or pair_df[heading_2].isna().any():
+        raise ValueError(
+            "One or both of the columns given contain NaN values; the column names may be incorrect or there is an issue with the data."  # noqa
+        )
+
+    if pair_df[heading_1].empty or pair_df[heading_2].empty:
+        raise ValueError("One or both of the columns is empty.")
+
+    samples_agreed = np.sum(pair_df[heading_1] == pair_df[heading_2])
+    return float(samples_agreed) / len(pair_df)
+
+
 def cosine_similarity(vector_a, vector_b):
     """Calculate the cosine similarity between two vectors.
 
@@ -290,7 +321,9 @@ def pairwise_agreement(
             * multi_krippendorff: krippendorff similarity by label for multilabel classification.
 
             * cosine: the cosine similarity metric to be used on soft labels.
-            
+
+            * percentage: simple percentage agreement between the two annotators.
+
         agreement_type (str): type of agreement.  * nominal
 
             * ordinal
@@ -332,6 +365,10 @@ def pairwise_agreement(
             user_x + label_suffix,
             user_y + label_suffix,
             agreement_type=agreement_type,
+        )
+    elif metric == "percentage":
+        return pairwise_percentage_agreement(
+            pair_df, user_x + label_suffix, user_y + label_suffix
         )
     else:
         raise ValueError(f"The metric {metric} was not recognised.")
