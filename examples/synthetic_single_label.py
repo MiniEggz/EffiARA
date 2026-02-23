@@ -47,6 +47,7 @@ print(annotations)
 label_mapping = {0.0: 0, 1.0: 1, 2.0: 2}
 label_generator = EffiLabelGenerator(sample_distributor.annotators, label_mapping)
 effiannos = Annotations(annotations, label_generator, reannotations=True)
+print(effiannos.calculate_overall_inter_annnotator_agreement())
 print(effiannos.get_reliability_dict())
 effiannos.display_annotator_graph()
 # Equivalent to the graph, but as a heatmap

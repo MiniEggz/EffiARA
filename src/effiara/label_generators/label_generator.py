@@ -94,7 +94,8 @@ class LabelGenerator(ABC):
         self.num_annotators = len(self.annotators)
         self.label_mapping = label_mapping
         self.num_classes = len(label_mapping)
-        if label_suffixes is None:
+        self.label_suffixes = label_suffixes
+        if self.label_suffixes is None:
             self.label_suffixes = ["_label"]
 
     @abstractmethod

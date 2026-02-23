@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from effiara.agreement import pairwise_agreement
+from effiara.agreement import inter_annotator_agreement_krippendorff, pairwise_agreement
 from effiara.label_generators import DefaultLabelGenerator, LabelGenerator
 from effiara.utils import retrieve_pair_annotations
 
@@ -95,7 +95,7 @@ class Annotations:
         self.strength = strength
 
         # set in self.calculate_inter_annotator_agreement
-        self.overall_inter_annotator_agreement = np.nan
+        self.avg_inter_annotator_agreement = np.nan
 
         # merge labels
         self.replace_labels()
@@ -191,6 +191,21 @@ class Annotations:
                 np.exp(self.G.nodes[node][property]) * num_nodes / denominator
             )
 
+    def calculate_overall_inter_annnotator_agreement(self):
+        """Calculate the overall inter-annotator agreement metric
+        for the whole dataset. Currently only Krippendorff's alpha
+        is implemented.
+        """
+        # TODO: change to logs
+        print(
+            "WARNING: only Krippendorff's alpha is currently implemented for this feature. Reporting Krippendorff's alpha."
+        )
+
+        label_cols = [anno + self.agreement_suffix for anno in self.annotators]
+        return inter_annotator_agreement_krippendorff(
+            self.df, label_cols, self.label_mapping
+        )
+
     def calculate_inter_annotator_agreement(self):
         """Calculate the inter-annotator agreement between each
         pair of annotators. Each agreement value will be
@@ -201,7 +216,7 @@ class Annotations:
         pairs = combinations(self.annotators, 2)
         for current_annotator, link_annotator in pairs:
             pair_df = retrieve_pair_annotations(
-                self.df, current_annotator, link_annotator
+                self.df, current_annotator, link_annotator, suffix=self.agreement_suffix
             )
             if len(pair_df) >= self.overlap_threshold:
                 pair = (current_annotator, link_annotator)
@@ -223,7 +238,7 @@ class Annotations:
         # TODO: maybe add alternative way of anntotator agreement?
         # i.e. Krippendorff for all annotations if individual annotator
         # doesn't matter
-        self.overall_inter_annotator_agreement = np.mean(
+        self.avg_inter_annotator_agreement = np.mean(
             list(inter_annotator_agreement_scores.values())
         )
 
@@ -351,6 +366,23 @@ class Annotations:
             dict: dictionary of key=username, value=reliability.
         """
         return {node: self.G.nodes[node]["reliability"] for node in self.G.nodes()}
+
+    def get_agreement(self, user_1, user_2) -> Optional[float]:
+        """Get the agreement between two annotators.
+
+        Args:
+            user_1 (str): the name of the first annotator.
+            user_2 (str): the name of the second annotator.
+
+        Returns:
+            Optional[float]: agreement between the two annotators (or None).
+        """
+        if user_1 == user_2:
+            return self.G.nodes[user_1].get("intra_agreement")
+        edge_data = self.G.get_edge_data(user_1, user_2)
+        if not edge_data:
+            return None
+        return edge_data.get("agreement", None)
 
     def display_annotator_graph(self, legend=False):
         """Display the annotation graph."""
