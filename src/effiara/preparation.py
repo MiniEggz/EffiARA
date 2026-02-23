@@ -6,7 +6,7 @@ This includes:
 
 import re
 import warnings
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import pandas as pd
 from sympy import Eq, solve, symbols
@@ -219,7 +219,7 @@ class SampleDistributor:
         df: pd.DataFrame,
         save_path: Optional[str] = None,
         all_reannotation: bool = False,
-    ):
+    ) -> Dict[str, pd.DataFrame]:
         """Distribute samples based on sample distributor
            settings.
 

@@ -8,6 +8,34 @@ from statsmodels.stats.inter_rater import aggregate_raters, fleiss_kappa
 from effiara.utils import headings_contain_prob_labels, retrieve_pair_annotations
 
 
+def inter_annotator_agreement_krippendorff(df, label_cols, label_mapping):
+    """Calculate overall Krippendorff's alpha inter-annotator agreement
+    metric.
+
+    Args:
+        df (pd.DataFrame): dataframe containing all labels.
+        label_cols (List[str]): annotators' label columns to calculate
+            agreement among.
+        label_mapping (dict): mapping between labels in datasets to numeric
+            label.
+
+    Returns:
+        float: Krippendorff's alpha agreement metric.
+    """
+    # add numeric version of each label col with label mapping
+    num_label_cols = [f"{label_col}_numeric" for label_col in label_cols]
+    for num_label_col, label_col in zip(num_label_cols, label_cols):
+        df[num_label_col] = df[label_col].map(label_mapping)
+
+    # all label cols _numeric .to_numpy()
+    krippendorff_format_data = df[num_label_cols].to_numpy().T
+
+    # run krippendorff's alpha
+    return krippendorff.alpha(
+        reliability_data=krippendorff_format_data, level_of_measurement="nominal"
+    )
+
+
 def pairwise_nominal_krippendorff_agreement(
     pair_df, heading_1, heading_2, label_mapping
 ):
@@ -339,7 +367,7 @@ def pairwise_agreement(
         float: agreement between user_x and user_y.
 
     """
-    pair_df = retrieve_pair_annotations(df, user_x, user_y)
+    pair_df = retrieve_pair_annotations(df, user_x, user_y, suffix=label_suffix)
     if metric == "krippendorff":
         return pairwise_nominal_krippendorff_agreement(
             pair_df, user_x + label_suffix, user_y + label_suffix, label_mapping
